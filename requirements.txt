@@ -1,8 +1,1 @@
 streamlit
-pandas
-numpy
-networkx
-pyvis
-jsonschema
-pytest
-ruff
