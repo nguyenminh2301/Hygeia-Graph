@@ -1,0 +1,154 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/hygeia-graph/contracts/model_spec.schema.json",
+  "title": "Hygeia-Graph - Model Spec (model_spec.json)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "spec_version",
+    "analysis_id",
+    "created_at",
+    "input",
+    "engine",
+    "mgm",
+    "edge_mapping",
+    "missing_policy"
+  ],
+  "properties": {
+    "spec_version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+    "analysis_id": { "type": "string", "format": "uuid" },
+    "created_at": { "type": "string", "format": "date-time" },
+
+    "input": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_ref"],
+      "properties": {
+        "schema_ref": {
+          "type": "string",
+          "description": "Path or URL to schema.json used for this run (or its artifact reference)."
+        },
+        "schema_sha256": { "type": "string", "pattern": "^[A-Fa-f0-9]{64}$" },
+        "data_sha256": { "type": "string", "pattern": "^[A-Fa-f0-9]{64}$" }
+      }
+    },
+
+    "engine": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string", "const": "R.mgm" },
+        "mode": {
+          "type": "string",
+          "enum": ["subprocess_rscript", "rpy2"],
+          "default": "subprocess_rscript"
+        }
+      }
+    },
+
+    "random_seed": { "type": "integer", "minimum": 0 },
+
+    "mgm": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["k", "regularization", "rule_reg", "overparameterize"],
+      "properties": {
+        "k": { "type": "integer", "const": 2, "description": "Pairwise MGM (k=2)." },
+
+        "regularization": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["lambda_selection", "ebic_gamma", "alpha"],
+          "properties": {
+            "lambda_selection": { "type": "string", "const": "EBIC" },
+            "ebic_gamma": { "type": "number", "minimum": 0, "maximum": 1, "default": 0.5 },
+            "alpha": { "type": "number", "minimum": 0, "maximum": 1, "default": 0.5 }
+          }
+        },
+
+        "rule_reg": { "type": "string", "enum": ["AND", "OR"], "default": "AND" },
+        "overparameterize": { "type": "boolean", "default": true },
+
+        "scale_gaussian": {
+          "type": "boolean",
+          "default": true,
+          "description": "If true, scale Gaussian variables (typical in regularized models)."
+        },
+
+        "sign_info": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether backend should attempt to compute sign info where applicable."
+        }
+      }
+    },
+
+    "edge_mapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["aggregator", "sign_strategy", "zero_tolerance"],
+      "properties": {
+        "aggregator": {
+          "type": "string",
+          "enum": ["l2_norm", "mean", "max_abs", "max", "mean_abs", "sum_abs"],
+          "default": "max_abs",
+          "description": "How to map parameter blocks (esp. categorical interactions) to 1 scalar edge weight."
+        },
+        "sign_strategy": {
+          "type": "string",
+          "enum": ["dominant", "mean", "none"],
+          "default": "dominant",
+          "description": "How to assign edge sign after aggregation (dominant = sign of largest |param|)."
+        },
+        "zero_tolerance": {
+          "type": "number",
+          "minimum": 0,
+          "default": 1e-12,
+          "description": "Values with |w| <= tol treated as zero."
+        }
+      }
+    },
+
+    "visualization": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "edge_threshold": { "type": "number", "minimum": 0, "default": 0.0 },
+        "layout": { "type": "string", "enum": ["force", "circle", "random"], "default": "force" }
+      }
+    },
+
+    "centrality": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "compute": { "type": "boolean", "default": true },
+        "weighted": { "type": "boolean", "default": true },
+        "use_absolute_weights": { "type": "boolean", "default": true }
+      }
+    },
+
+    "missing_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["action"],
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "warn_and_abort",
+          "description": "Project decision: only warn; user must preprocess (e.g., MICE) before running."
+        }
+      }
+    },
+
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "git_commit": { "type": "string", "minLength": 7 },
+        "run_by": { "type": "string" }
+      }
+    }
+  }
+}

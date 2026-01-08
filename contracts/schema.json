@@ -1,0 +1,182 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/hygeia-graph/contracts/schema.schema.json",
+  "title": "Hygeia-Graph - Data Schema (schema.json)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "created_at", "dataset", "variables"],
+  "properties": {
+    "schema_version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+    "analysis_id": { "type": "string", "format": "uuid" },
+    "created_at": { "type": "string", "format": "date-time" },
+
+    "dataset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["row_count", "column_count"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "description": { "type": "string" },
+        "source": { "type": "string" },
+
+        "row_count": { "type": "integer", "minimum": 1 },
+        "column_count": { "type": "integer", "minimum": 1 },
+
+        "missing": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["cells", "rate"],
+          "properties": {
+            "cells": { "type": "integer", "minimum": 0 },
+            "rate": { "type": "number", "minimum": 0, "maximum": 1 },
+            "by_variable": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["variable_id", "cells", "rate"],
+                "properties": {
+                  "variable_id": { "type": "string", "minLength": 1 },
+                  "cells": { "type": "integer", "minimum": 0 },
+                  "rate": { "type": "number", "minimum": 0, "maximum": 1 }
+                }
+              }
+            }
+          }
+        },
+
+        "checksum_sha256": {
+          "type": "string",
+          "pattern": "^[A-Fa-f0-9]{64}$",
+          "description": "Optional checksum of raw CSV bytes for reproducibility."
+        }
+      }
+    },
+
+    "variables": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/variable" }
+    },
+
+    "notes": { "type": "string" },
+    "warnings": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/message" }
+    }
+  },
+
+  "$defs": {
+    "message": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["level", "code", "message"],
+      "properties": {
+        "level": { "type": "string", "enum": ["info", "warning", "error"] },
+        "code": { "type": "string", "minLength": 1 },
+        "message": { "type": "string", "minLength": 1 },
+        "details": { "type": "object" }
+      }
+    },
+
+    "variable": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "column", "mgm_type", "measurement_level", "level"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z_][A-Za-z0-9_\\-]*$",
+          "description": "Stable identifier used across schema/spec/results."
+        },
+        "column": { "type": "string", "minLength": 1, "description": "Exact column name in uploaded CSV." },
+        "label": { "type": "string" },
+        "domain_group": { "type": "string", "description": "e.g., Symptoms / RiskFactors / Biomarkers" },
+
+        "mgm_type": {
+          "type": "string",
+          "enum": ["g", "c", "p"],
+          "description": "R mgm() type: g=Gaussian, c=Categorical, p=Poisson."
+        },
+
+        "measurement_level": {
+          "type": "string",
+          "enum": ["continuous", "nominal", "ordinal", "count"],
+          "description": "UI/semantics; ordinal will still be encoded as mgm_type=c."
+        },
+
+        "level": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "R mgm() level: continuous/count => 1, categorical/ordinal => #categories."
+        },
+
+        "categories": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 2,
+          "description": "Optional display labels for categorical/ordinal, in encoding order (ordinal: ordered)."
+        },
+
+        "encoding": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["strategy"],
+          "properties": {
+            "strategy": {
+              "type": "string",
+              "enum": ["identity", "categorical_codes", "ordinal_codes", "count_int"],
+              "description": "How Python encodes column before sending to R."
+            },
+            "mapping": {
+              "type": "object",
+              "additionalProperties": { "type": "integer" },
+              "description": "Optional map from raw category labels to integer codes."
+            }
+          }
+        },
+
+        "constraints": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "nonnegative": { "type": "boolean" },
+            "min": { "type": "number" },
+            "max": { "type": "number" }
+          }
+        }
+      },
+
+      "allOf": [
+        {
+          "if": { "properties": { "mgm_type": { "const": "g" } } },
+          "then": {
+            "properties": { "measurement_level": { "const": "continuous" }, "level": { "const": 1 } }
+          }
+        },
+        {
+          "if": { "properties": { "mgm_type": { "const": "p" } } },
+          "then": {
+            "properties": {
+              "measurement_level": { "const": "count" },
+              "level": { "const": 1 },
+              "constraints": {
+                "type": "object",
+                "properties": { "nonnegative": { "const": true } }
+              }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "mgm_type": { "const": "c" } } },
+          "then": {
+            "properties": {
+              "measurement_level": { "enum": ["nominal", "ordinal"] },
+              "level": { "type": "integer", "minimum": 2 }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

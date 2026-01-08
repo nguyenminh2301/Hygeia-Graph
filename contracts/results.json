@@ -1,0 +1,201 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/hygeia-graph/contracts/results.schema.json",
+  "title": "Hygeia-Graph - Results (results.json)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "result_version",
+    "analysis_id",
+    "generated_at",
+    "status",
+    "engine",
+    "input",
+    "nodes",
+    "edges",
+    "messages"
+  ],
+  "properties": {
+    "result_version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+    "analysis_id": { "type": "string", "format": "uuid" },
+    "generated_at": { "type": "string", "format": "date-time" },
+
+    "status": { "type": "string", "enum": ["success", "failed"] },
+
+    "engine": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string", "const": "R.mgm" },
+        "r_version": { "type": "string" },
+        "package_versions": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        }
+      }
+    },
+
+    "input": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_sha256", "spec_sha256"],
+      "properties": {
+        "schema_sha256": { "type": "string", "pattern": "^[A-Fa-f0-9]{64}$" },
+        "data_sha256": { "type": "string", "pattern": "^[A-Fa-f0-9]{64}$" },
+        "spec_sha256": { "type": "string", "pattern": "^[A-Fa-f0-9]{64}$" }
+      }
+    },
+
+    "messages": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/message" }
+    },
+
+    "data_summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "row_count": { "type": "integer", "minimum": 1 },
+        "column_count": { "type": "integer", "minimum": 1 },
+        "missing_cells": { "type": "integer", "minimum": 0 },
+        "missing_rate": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+
+    "mgm_fit": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "lambda_selection": { "type": "string", "enum": ["EBIC"] },
+        "ebic_gamma": { "type": "number", "minimum": 0, "maximum": 1 },
+        "selected_lambda": { "type": "number", "minimum": 0 },
+        "alpha": { "type": "number", "minimum": 0, "maximum": 1 },
+        "rule_reg": { "type": "string", "enum": ["AND", "OR"] },
+        "overparameterize": { "type": "boolean" },
+        "k": { "type": "integer", "const": 2 }
+      }
+    },
+
+    "edge_mapping_used": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["aggregator", "sign_strategy", "zero_tolerance"],
+      "properties": {
+        "aggregator": { "type": "string", "enum": ["l2_norm", "mean", "max_abs", "max", "mean_abs", "sum_abs"] },
+        "sign_strategy": { "type": "string", "enum": ["dominant", "mean", "none"] },
+        "zero_tolerance": { "type": "number", "minimum": 0 }
+      }
+    },
+
+    "nodes": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/node" }
+    },
+
+    "edges": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/edge" }
+    },
+
+    "centrality": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "metrics": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["node_id"],
+            "properties": {
+              "node_id": { "type": "string", "minLength": 1 },
+              "strength": { "type": "number" },
+              "betweenness": { "type": "number" },
+              "closeness": { "type": "number" }
+            }
+          }
+        },
+        "notes": { "type": "string" }
+      }
+    },
+
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "seconds": { "type": "number", "minimum": 0 },
+        "host": { "type": "string" },
+        "git_commit": { "type": "string", "minLength": 7 }
+      }
+    }
+  },
+
+  "$defs": {
+    "message": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["level", "code", "message"],
+      "properties": {
+        "level": { "type": "string", "enum": ["info", "warning", "error"] },
+        "code": { "type": "string", "minLength": 1 },
+        "message": { "type": "string", "minLength": 1 },
+        "details": { "type": "object" }
+      }
+    },
+
+    "node": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "column", "mgm_type", "measurement_level", "level"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "column": { "type": "string", "minLength": 1 },
+        "label": { "type": "string" },
+        "domain_group": { "type": "string" },
+        "mgm_type": { "type": "string", "enum": ["g", "c", "p"] },
+        "measurement_level": { "type": "string", "enum": ["continuous", "nominal", "ordinal", "count"] },
+        "level": { "type": "integer", "minimum": 1 }
+      }
+    },
+
+    "edge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "target", "weight", "sign", "block_summary"],
+      "properties": {
+        "source": { "type": "string", "minLength": 1 },
+        "target": { "type": "string", "minLength": 1 },
+
+        "weight": { "type": "number", "description": "Scalar edge weight after block aggregation." },
+
+        "sign": {
+          "type": "string",
+          "enum": ["positive", "negative", "zero", "unsigned"],
+          "description": "Derived from sign_strategy; unsigned allowed if aggregator yields no sign."
+        },
+
+        "block_summary": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["n_params", "l2_norm", "mean", "max", "min", "max_abs"],
+          "properties": {
+            "n_params": { "type": "integer", "minimum": 1 },
+            "l2_norm": { "type": "number", "minimum": 0 },
+            "mean": { "type": "number" },
+            "max": { "type": "number" },
+            "min": { "type": "number" },
+            "max_abs": { "type": "number", "minimum": 0 }
+          }
+        },
+
+        "raw_block": {
+          "type": "array",
+          "items": { "type": "number" },
+          "description": "Optional flattened parameter block (for debugging/traceability)."
+        }
+      }
+    }
+  }
+}
