@@ -51,6 +51,57 @@ Auto-format code:
 ruff format .
 ```
 
+## Contract Validation
+
+Hygeia-Graph uses JSON Schema (Draft 2020-12) to validate three core contract types:
+- `schema.json`: Dataset metadata and variable specifications
+- `model_spec.json`: MGM model parameters and configuration
+- `results.json`: MGM execution results and network data
+
+### Validating Contracts
+
+Validate a contract file using the CLI:
+
+```bash
+# Validate schema contract
+python -m hygeia_graph.validate schema path/to/schema.json
+
+# Validate model spec contract
+python -m hygeia_graph.validate model_spec path/to/model_spec.json
+
+# Validate results contract
+python -m hygeia_graph.validate results path/to/results.json
+```
+
+Exit codes:
+- `0`: Validation successful
+- `1`: Validation failed (errors printed to stderr)
+
+### Using Validation in Python
+
+```python
+from hygeia_graph.contracts import (
+    validate_schema_json,
+    validate_model_spec_json,
+    validate_results_json,
+    validate_file,
+    ContractValidationError
+)
+
+# Validate a Python dict
+try:
+    validate_schema_json(my_schema_dict)
+    print("Valid!")
+except ContractValidationError as e:
+    print(f"Validation failed: {e}")
+    for error in e.errors:
+        print(f"  {error['path']}: {error['message']}")
+
+# Validate a file
+from pathlib import Path
+validate_file("schema", Path("path/to/schema.json"))
+```
+
 ## Project Structure
 
 ```

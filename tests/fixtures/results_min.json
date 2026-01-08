@@ -1,0 +1,24 @@
+{
+    "result_version": "0.1.0",
+    "analysis_id": "00000000-0000-0000-0000-000000000001",
+    "generated_at": "2026-01-09T00:00:00Z",
+    "status": "success",
+    "engine": {
+        "name": "R.mgm"
+    },
+    "input": {
+        "schema_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "spec_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    "messages": [],
+    "nodes": [
+        {
+            "id": "age",
+            "column": "Age",
+            "mgm_type": "g",
+            "measurement_level": "continuous",
+            "level": 1
+        }
+    ],
+    "edges": []
+}

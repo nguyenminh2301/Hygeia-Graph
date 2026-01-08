@@ -1,0 +1,17 @@
+{
+    "schema_version": "0.1.0",
+    "created_at": "2026-01-09T00:00:00Z",
+    "dataset": {
+        "row_count": 10,
+        "column_count": 1
+    },
+    "variables": [
+        {
+            "id": "age",
+            "column": "Age",
+            "mgm_type": "g",
+            "measurement_level": "continuous",
+            "level": 1
+        }
+    ]
+}
