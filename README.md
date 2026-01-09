@@ -1,3 +1,12 @@
+---
+title: Hygeia-Graph
+emoji: 🧬
+colorFrom: blue
+colorTo: green
+sdk: docker
+app_port: 7860
+---
+
 # Hygeia-Graph
 
 **Mixed Graphical Models for Medical Network Analysis**
@@ -159,6 +168,17 @@ docker build -t hygeia-graph .
 # Run
 docker run -p 8501:8501 hygeia-graph
 ```
+
+### Hugging Face Spaces (Docker)
+Automated deployment via GitHub Actions:
+
+1. **Create a Hugging Face Space** (Docker SDK)
+2. **Add GitHub Secrets**:
+   - `HF_TOKEN`: Your Hugging Face write token
+   - `HF_SPACE`: Your space name (e.g., `username/hygeia-graph`)
+3. **Push to main**: Deployment triggers automatically
+
+**Note**: Runs on free CPU with ephemeral disk. Port 7860.
 
 📖 **Deployment details**: See [reports/STEP9_REPORT.md](reports/STEP9_REPORT.md)
 
