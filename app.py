@@ -13,6 +13,13 @@ from hygeia_graph.contracts import (
 )
 from hygeia_graph.data_processor import build_schema_json, infer_variables, load_csv, profile_df
 from hygeia_graph.model_spec import build_model_spec, default_model_settings, sanitize_settings
+from hygeia_graph.network_metrics import (
+    build_graph_from_results,
+    compute_centrality_table,
+    edges_to_dataframe,
+    filter_edges_by_threshold,
+    make_nodes_meta,
+)
 from hygeia_graph.r_interface import RBackendError, run_mgm_subprocess
 
 # Get repository root
@@ -684,6 +691,162 @@ def show_data_page():
         # Raw JSON
         with st.expander("📄 Raw JSON"):
             st.json(results)
+
+    # Section 8: Network Tables & Centrality
+    st.divider()
+    st.subheader("8. Network Tables & Centrality")
+
+    # Check if we have valid results
+    if not st.session_state.results_json:
+        st.info("⬆️ Run MGM first to see network tables")
+        return
+
+    results = st.session_state.results_json
+    if results.get("status") != "success":
+        st.warning("⚠️ Model run failed; network tables are unavailable.")
+        return
+
+    edges = results.get("edges", [])
+    nodes = results.get("nodes", [])
+
+    if not edges:
+        st.info("No edges found in results. Network tables are empty.")
+        return
+
+    # Compute max weight for slider
+    max_abs_weight = max(abs(e.get("weight", 0)) for e in edges) if edges else 0
+
+    # Controls
+    with st.expander("⚙️ Table Controls", expanded=True):
+        col1, col2 = st.columns(2)
+
+        with col1:
+            use_absolute = st.checkbox(
+                "Use absolute edge weights",
+                value=True,
+                help="Use |weight| for filtering and centrality",
+            )
+
+            # Edge threshold slider
+            step_val = max(0.01, max_abs_weight / 100) if max_abs_weight > 0 else 0.01
+            threshold = st.slider(
+                "Edge threshold",
+                min_value=0.0,
+                max_value=float(max_abs_weight) if max_abs_weight > 0 else 1.0,
+                value=0.0,
+                step=step_val,
+                help="Minimum weight to include edges",
+            )
+
+        with col2:
+            compute_betweenness = st.checkbox(
+                "Compute betweenness centrality",
+                value=True,
+                help="Betweenness centrality (may be slow for large networks)",
+            )
+
+            compute_closeness = st.checkbox(
+                "Compute closeness centrality",
+                value=False,
+                help="Closeness centrality (requires weight-to-distance conversion)",
+            )
+
+            max_rows = st.number_input(
+                "Max rows to display",
+                min_value=10,
+                max_value=1000,
+                value=200,
+                step=50,
+                help="Limit table display for performance",
+            )
+
+    # Filter edges
+    filtered_edges = filter_edges_by_threshold(
+        results, threshold, use_absolute_weights=use_absolute
+    )
+
+    # Summary metrics
+    st.write("### 📊 Summary")
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.metric("Total Nodes", len(nodes))
+    with col2:
+        st.metric("Total Edges", len(edges))
+    with col3:
+        st.metric("Filtered Edges", len(filtered_edges))
+    with col4:
+        n = len(nodes)
+        density = 2 * len(filtered_edges) / (n * (n - 1)) if n > 1 else 0
+        st.metric("Density", f"{density:.3f}")
+
+    # Edge table
+    st.write("### 🔗 Edge Table")
+
+    if len(filtered_edges) > 5000:
+        st.warning(f"⚠️ Large number of edges ({len(filtered_edges)}). Showing top {max_rows}.")
+
+    nodes_meta = make_nodes_meta(results)
+    edges_df = edges_to_dataframe(filtered_edges[: int(max_rows)], nodes_meta)
+
+    if not edges_df.empty:
+        st.dataframe(
+            edges_df,
+            use_container_width=True,
+            hide_index=True,
+        )
+
+        # Download button for full filtered edges
+        full_edges_df = edges_to_dataframe(filtered_edges, nodes_meta)
+        csv_edges = full_edges_df.to_csv(index=False)
+        st.download_button(
+            label=f"📥 Download edges_filtered.csv ({len(filtered_edges)} edges)",
+            data=csv_edges,
+            file_name="edges_filtered.csv",
+            mime="text/csv",
+        )
+    else:
+        st.info("No edges meet the threshold criteria.")
+
+    # Centrality table
+    st.write("### 📈 Centrality Table")
+
+    # Build graph with current settings
+    G = build_graph_from_results(results, use_absolute_weights=use_absolute)
+
+    # Compute centrality
+    centrality_df = compute_centrality_table(
+        G,
+        compute_betweenness=compute_betweenness,
+        compute_closeness=compute_closeness,
+    )
+
+    if not centrality_df.empty:
+        # Show top rows
+        display_df = centrality_df.head(int(max_rows))
+
+        # Format for display
+        format_cols = ["strength"]
+        if compute_betweenness:
+            format_cols.append("betweenness")
+        if compute_closeness:
+            format_cols.append("closeness")
+
+        st.dataframe(
+            display_df,
+            use_container_width=True,
+            hide_index=True,
+        )
+
+        # Download button
+        csv_centrality = centrality_df.to_csv(index=False)
+        st.download_button(
+            label=f"📥 Download centrality.csv ({len(centrality_df)} nodes)",
+            data=csv_centrality,
+            file_name="centrality.csv",
+            mime="text/csv",
+        )
+    else:
+        st.info("No nodes to compute centrality.")
 
 
 if __name__ == "__main__":

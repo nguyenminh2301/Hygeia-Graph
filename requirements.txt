@@ -2,3 +2,4 @@ streamlit
 jsonschema
 pandas
 numpy
+networkx
