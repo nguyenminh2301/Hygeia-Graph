@@ -13,6 +13,7 @@ from hygeia_graph.contracts import (
 )
 from hygeia_graph.data_processor import build_schema_json, infer_variables, load_csv, profile_df
 from hygeia_graph.model_spec import build_model_spec, default_model_settings, sanitize_settings
+from hygeia_graph.r_interface import RBackendError, run_mgm_subprocess
 
 # Get repository root
 REPO_ROOT = Path(__file__).resolve().parent
@@ -102,6 +103,12 @@ def show_data_page():
         st.session_state.model_spec_obj = None
     if "model_spec_valid" not in st.session_state:
         st.session_state.model_spec_valid = False
+    if "results_json" not in st.session_state:
+        st.session_state.results_json = None
+    if "r_process_info" not in st.session_state:
+        st.session_state.r_process_info = None
+    if "missing_rate" not in st.session_state:
+        st.session_state.missing_rate = 0.0
 
     # Section 1: CSV Upload
     st.subheader("1. Upload CSV File")
@@ -131,6 +138,9 @@ def show_data_page():
     # Section 2: Data Profiling
     st.subheader("2. Data Profiling")
     profile = profile_df(df)
+
+    # Store missing rate for Run MGM checks
+    st.session_state.missing_rate = profile["missing"]["rate"]
 
     col1, col2, col3 = st.columns(3)
     with col1:
@@ -482,6 +492,198 @@ def show_data_page():
     if st.session_state.model_spec_obj:
         with st.expander("📄 Model Spec Preview (JSON)"):
             st.json(st.session_state.model_spec_obj)
+
+    # Section 7: Run MGM (R backend)
+    st.divider()
+    st.subheader("7. Run MGM (R Backend)")
+
+    # Pre-run checks
+    with st.expander("✅ Pre-run Checklist", expanded=True):
+        col1, col2 = st.columns(2)
+
+        with col1:
+            # Check data loaded
+            data_loaded = st.session_state.df is not None
+            if data_loaded:
+                st.success("✅ Data loaded")
+            else:
+                st.error("❌ Data not loaded")
+
+            # Check schema valid
+            schema_valid = st.session_state.schema_valid and st.session_state.schema_obj
+            if schema_valid:
+                st.success("✅ schema.json valid")
+            else:
+                st.error("❌ schema.json not valid")
+
+        with col2:
+            # Check model spec valid
+            spec_valid = st.session_state.model_spec_valid and st.session_state.model_spec_obj
+            if spec_valid:
+                st.success("✅ model_spec.json valid")
+            else:
+                st.error("❌ model_spec.json not valid")
+
+            # Check missing rate
+            missing_ok = st.session_state.missing_rate == 0
+            if missing_ok:
+                st.success("✅ Missing rate = 0%")
+            else:
+                st.error(f"❌ Missing rate = {st.session_state.missing_rate:.1%}")
+
+    # Block run if missing data
+    can_run = data_loaded and schema_valid and spec_valid
+    if not missing_ok:
+        st.error(
+            "⛔ **Cannot run MGM**: Missing values detected. "
+            "Hygeia-Graph does not impute; please preprocess externally (e.g., MICE) and re-run."
+        )
+        can_run = False
+
+    # Run controls
+    with st.expander("⚙️ Advanced Options"):
+        col1, col2 = st.columns(2)
+        with col1:
+            timeout_sec = st.number_input(
+                "Timeout (seconds)",
+                min_value=60,
+                max_value=3600,
+                value=600,
+                step=60,
+                help="Maximum time to wait for R process",
+            )
+        with col2:
+            debug_mode = st.checkbox(
+                "Debug mode",
+                value=False,
+                help="Include raw parameter blocks in output",
+            )
+        show_output = st.checkbox(
+            "Show stdout/stderr on error",
+            value=True,
+            help="Display R process output if execution fails",
+        )
+
+    # Run button
+    col_run, col_status = st.columns([1, 2])
+
+    with col_run:
+        run_clicked = st.button(
+            "🚀 Run MGM (EBIC)",
+            type="primary",
+            disabled=not can_run,
+            use_container_width=True,
+        )
+
+    if run_clicked and can_run:
+        with st.status("Running MGM analysis...", expanded=True) as status:
+            try:
+                st.write("📦 Preparing input artifacts...")
+                st.write("🔧 Starting R subprocess...")
+
+                result = run_mgm_subprocess(
+                    df=st.session_state.df,
+                    schema_json=st.session_state.schema_obj,
+                    model_spec_json=st.session_state.model_spec_obj,
+                    timeout_sec=int(timeout_sec),
+                    quiet=True,
+                    debug=debug_mode,
+                )
+
+                st.session_state.results_json = result["results"]
+                st.session_state.r_process_info = result["process"]
+
+                # Check status
+                if result["results"]["status"] == "success":
+                    n_edges = len(result["results"].get("edges", []))
+                    status.update(
+                        label=f"✅ MGM completed successfully ({n_edges} edges)",
+                        state="complete",
+                    )
+                    st.success(f"MGM analysis completed! Found {n_edges} edges.")
+                else:
+                    status.update(label="⚠️ MGM completed with status: failed", state="error")
+                    st.warning("MGM completed but status is 'failed'. Check messages below.")
+
+            except RBackendError as e:
+                st.session_state.results_json = None
+                st.session_state.r_process_info = None
+                status.update(label="❌ MGM execution failed", state="error")
+                st.error(f"❌ R backend error: {e.message}")
+
+                if show_output:
+                    if e.stdout:
+                        with st.expander("📄 R stdout"):
+                            st.code(e.stdout, language="text")
+                    if e.stderr:
+                        with st.expander("📄 R stderr"):
+                            st.code(e.stderr, language="text")
+
+            except Exception as e:
+                st.session_state.results_json = None
+                st.session_state.r_process_info = None
+                status.update(label="❌ Unexpected error", state="error")
+                st.error(f"❌ Unexpected error: {e}")
+
+    # Results viewer
+    if st.session_state.results_json:
+        st.divider()
+        st.subheader("📊 Results")
+
+        results = st.session_state.results_json
+
+        # Status and summary
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            status_val = results.get("status", "unknown")
+            if status_val == "success":
+                st.metric("Status", "✅ Success")
+            else:
+                st.metric("Status", "❌ Failed")
+        with col2:
+            st.metric("Nodes", len(results.get("nodes", [])))
+        with col3:
+            st.metric("Edges", len(results.get("edges", [])))
+
+        # Engine info
+        engine = results.get("engine", {})
+        if engine:
+            with st.expander("🔧 Engine Info"):
+                st.write(f"**Engine**: {engine.get('name', 'unknown')}")
+                st.write(f"**R Version**: {engine.get('r_version', 'unknown')}")
+                pkg_versions = engine.get("package_versions", {})
+                if pkg_versions:
+                    st.write("**Package Versions**:")
+                    for pkg, ver in pkg_versions.items():
+                        st.write(f"  - {pkg}: {ver}")
+
+        # Messages
+        messages = results.get("messages", [])
+        if messages:
+            with st.expander(f"📝 Messages ({len(messages)})"):
+                msg_df = pd.DataFrame(messages)
+                if not msg_df.empty:
+                    st.dataframe(
+                        msg_df[["level", "code", "message"]],
+                        use_container_width=True,
+                        hide_index=True,
+                    )
+
+        # Download button
+        col_dl, _ = st.columns([1, 2])
+        with col_dl:
+            results_str = json.dumps(results, indent=2, sort_keys=True)
+            st.download_button(
+                label="📥 Download results.json",
+                data=results_str,
+                file_name="results.json",
+                mime="application/json",
+                use_container_width=True,
+            )
+
+        # Raw JSON
+        with st.expander("📄 Raw JSON"):
+            st.json(results)
 
 
 if __name__ == "__main__":
