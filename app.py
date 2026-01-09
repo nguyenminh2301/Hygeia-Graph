@@ -6,8 +6,13 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
-from hygeia_graph.contracts import ContractValidationError, validate_schema_json
+from hygeia_graph.contracts import (
+    ContractValidationError,
+    validate_model_spec_json,
+    validate_schema_json,
+)
 from hygeia_graph.data_processor import build_schema_json, infer_variables, load_csv, profile_df
+from hygeia_graph.model_spec import build_model_spec, default_model_settings, sanitize_settings
 
 # Get repository root
 REPO_ROOT = Path(__file__).resolve().parent
@@ -91,6 +96,12 @@ def show_data_page():
         st.session_state.schema_obj = None
     if "schema_valid" not in st.session_state:
         st.session_state.schema_valid = False
+    if "model_settings" not in st.session_state:
+        st.session_state.model_settings = default_model_settings()
+    if "model_spec_obj" not in st.session_state:
+        st.session_state.model_spec_obj = None
+    if "model_spec_valid" not in st.session_state:
+        st.session_state.model_spec_valid = False
 
     # Section 1: CSV Upload
     st.subheader("1. Upload CSV File")
@@ -247,6 +258,230 @@ def show_data_page():
     if st.session_state.schema_obj:
         with st.expander("📄 Schema Preview (JSON)"):
             st.json(st.session_state.schema_obj)
+
+    # Section 5: Model Settings (EBIC)
+    st.divider()
+    st.subheader("5. Model Settings (EBIC Regularization)")
+
+    # Only show if schema is available
+    if not st.session_state.schema_valid or not st.session_state.schema_obj:
+        st.info("⬆️ Please upload data and generate a valid schema first")
+        return
+
+    # EBIC / Regularization Section
+    with st.expander("⚙️ EBIC & Regularization Parameters", expanded=True):
+        col1, col2 = st.columns(2)
+
+        with col1:
+            ebic_gamma = st.slider(
+                "EBIC Gamma",
+                min_value=0.0,
+                max_value=1.0,
+                value=st.session_state.model_settings["mgm"]["regularization"]["ebic_gamma"],
+                step=0.05,
+                help="EBIC hyperparameter for model selection (0=BIC, 0.5=default, 1=more penalty)",
+            )
+
+            alpha = st.slider(
+                "Alpha (Elastic Net)",
+                min_value=0.0,
+                max_value=1.0,
+                value=st.session_state.model_settings["mgm"]["regularization"]["alpha"],
+                step=0.05,
+                help="Elastic net mixing (0=Ridge, 0.5=default, 1=Lasso)",
+            )
+
+            rule_reg = st.selectbox(
+                "Rule Regularization",
+                options=["AND", "OR"],
+                index=0 if st.session_state.model_settings["mgm"]["rule_reg"] == "AND" else 1,
+                help="Regularization rule for pairwise interactions",
+            )
+
+        with col2:
+            overparameterize = st.checkbox(
+                "Overparameterize",
+                value=st.session_state.model_settings["mgm"]["overparameterize"],
+                help="Use overparameterized model",
+            )
+
+            scale_gaussian = st.checkbox(
+                "Scale Gaussian",
+                value=st.session_state.model_settings["mgm"]["scale_gaussian"],
+                help="Standardize Gaussian variables",
+            )
+
+            sign_info = st.checkbox(
+                "Sign Info",
+                value=st.session_state.model_settings["mgm"]["sign_info"],
+                help="Include sign information in edge weights",
+            )
+
+            random_seed = st.number_input(
+                "Random Seed",
+                min_value=0,
+                value=st.session_state.model_settings["random_seed"],
+                step=1,
+                help="Random seed for reproducibility",
+            )
+
+        # Update settings
+        st.session_state.model_settings["mgm"]["regularization"]["ebic_gamma"] = ebic_gamma
+        st.session_state.model_settings["mgm"]["regularization"]["alpha"] = alpha
+        st.session_state.model_settings["mgm"]["rule_reg"] = rule_reg
+        st.session_state.model_settings["mgm"]["overparameterize"] = overparameterize
+        st.session_state.model_settings["mgm"]["scale_gaussian"] = scale_gaussian
+        st.session_state.model_settings["mgm"]["sign_info"] = sign_info
+        st.session_state.model_settings["random_seed"] = int(random_seed)
+
+    # Edge Mapping Section
+    with st.expander("🔗 Edge Mapping Configuration"):
+        col1, col2, col3 = st.columns(3)
+
+        with col1:
+            aggregator = st.selectbox(
+                "Aggregator",
+                options=["max_abs", "l2_norm", "mean", "mean_abs", "sum_abs", "max"],
+                index=["max_abs", "l2_norm", "mean", "mean_abs", "sum_abs", "max"].index(
+                    st.session_state.model_settings["edge_mapping"]["aggregator"]
+                ),
+                help="Method for aggregating pairwise parameters to single edge weight",
+            )
+
+        with col2:
+            sign_strategy = st.selectbox(
+                "Sign Strategy",
+                options=["dominant", "mean", "none"],
+                index=["dominant", "mean", "none"].index(
+                    st.session_state.model_settings["edge_mapping"]["sign_strategy"]
+                ),
+                help="Strategy for determining edge sign",
+            )
+
+        with col3:
+            zero_tolerance = st.number_input(
+                "Zero Tolerance",
+                min_value=0.0,
+                value=st.session_state.model_settings["edge_mapping"]["zero_tolerance"],
+                format="%.2e",
+                help="Threshold for treating values as zero",
+            )
+
+        # Update settings
+        st.session_state.model_settings["edge_mapping"]["aggregator"] = aggregator
+        st.session_state.model_settings["edge_mapping"]["sign_strategy"] = sign_strategy
+        st.session_state.model_settings["edge_mapping"]["zero_tolerance"] = float(zero_tolerance)
+
+    # Visualization & Centrality (Optional)
+    with st.expander("📊 Visualization & Centrality (Optional)"):
+        col1, col2 = st.columns(2)
+
+        with col1:
+            edge_threshold = st.number_input(
+                "Edge Threshold",
+                min_value=0.0,
+                value=st.session_state.model_settings["visualization"]["edge_threshold"],
+                step=0.01,
+                help="Minimum edge weight to display",
+            )
+
+            layout = st.selectbox(
+                "Layout Algorithm",
+                options=["force", "circle", "random"],
+                index=["force", "circle", "random"].index(
+                    st.session_state.model_settings["visualization"]["layout"]
+                ),
+                help="Graph layout algorithm",
+            )
+
+        with col2:
+            compute_centrality = st.checkbox(
+                "Compute Centrality",
+                value=st.session_state.model_settings["centrality"]["compute"],
+                help="Calculate centrality metrics",
+            )
+
+            weighted = st.checkbox(
+                "Weighted Centrality",
+                value=st.session_state.model_settings["centrality"]["weighted"],
+                help="Use edge weights in centrality calculation",
+            )
+
+            use_absolute = st.checkbox(
+                "Use Absolute Weights",
+                value=st.session_state.model_settings["centrality"]["use_absolute_weights"],
+                help="Use absolute values of edge weights",
+            )
+
+        # Update settings
+        st.session_state.model_settings["visualization"]["edge_threshold"] = float(edge_threshold)
+        st.session_state.model_settings["visualization"]["layout"] = layout
+        st.session_state.model_settings["centrality"]["compute"] = compute_centrality
+        st.session_state.model_settings["centrality"]["weighted"] = weighted
+        st.session_state.model_settings["centrality"]["use_absolute_weights"] = use_absolute
+
+    # Build & Export Model Spec
+    st.subheader("6. Build & Export Model Specification")
+
+    col_a, col_b = st.columns(2)
+
+    with col_a:
+        if st.button(
+            "🔍 Build & Validate model_spec.json", type="primary", use_container_width=True
+        ):
+            with st.spinner("Building and validating model spec..."):
+                try:
+                    # Sanitize settings
+                    clean_settings = sanitize_settings(st.session_state.model_settings)
+
+                    # Build model spec
+                    model_spec = build_model_spec(st.session_state.schema_obj, clean_settings)
+                    st.session_state.model_spec_obj = model_spec
+
+                    # Validate
+                    validate_model_spec_json(model_spec)
+                    st.session_state.model_spec_valid = True
+                    st.success("✅ Model spec is valid!")
+
+                    # Show locked fields info
+                    st.info(
+                        "🔒 **Locked settings enforced:**\n"
+                        "- Lambda selection: EBIC\n"
+                        "- Missing policy: warn_and_abort"
+                    )
+
+                except ContractValidationError as e:
+                    st.session_state.model_spec_valid = False
+                    st.error("❌ Model spec validation failed:")
+                    for err in e.errors:
+                        st.error(f"  • {err['path']}: {err['message']}")
+
+                except Exception as e:
+                    st.session_state.model_spec_valid = False
+                    st.error(f"❌ Unexpected error: {e}")
+
+    with col_b:
+        if st.session_state.model_spec_valid and st.session_state.model_spec_obj:
+            model_spec_json = json.dumps(st.session_state.model_spec_obj, indent=2, sort_keys=True)
+            st.download_button(
+                label="📥 Download model_spec.json",
+                data=model_spec_json,
+                file_name="model_spec.json",
+                mime="application/json",
+                use_container_width=True,
+            )
+        else:
+            st.button(
+                "📥 Download model_spec.json",
+                disabled=True,
+                use_container_width=True,
+                help="Build & validate model spec first",
+            )
+
+    # Show model spec preview
+    if st.session_state.model_spec_obj:
+        with st.expander("📄 Model Spec Preview (JSON)"):
+            st.json(st.session_state.model_spec_obj)
 
 
 if __name__ == "__main__":
