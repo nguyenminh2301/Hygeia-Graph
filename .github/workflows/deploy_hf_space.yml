@@ -1,27 +1,47 @@
-name: Deploy to Hugging Face Spaces
+name: Deploy to Hugging Face Space
 
 on:
   push:
-    branches: [main]
+    branches: ["main"]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-hf-space
+  cancel-in-progress: true
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    
+    permissions:
+      contents: read
+
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          lfs: true
 
-      - name: Configure Git
-        run: |
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
-
-      - name: Push to Hugging Face Space
+      - name: Push to Hugging Face Space (main)
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           HF_SPACE: ${{ secrets.HF_SPACE }}
         run: |
-          git push --force https://user:${HF_TOKEN}@huggingface.co/spaces/${HF_SPACE} main:main
+          set -euo pipefail
+
+          if [ -z "${HF_TOKEN}" ] || [ -z "${HF_SPACE}" ]; then
+            echo "Missing HF_TOKEN or HF_SPACE secret."
+            exit 1
+          fi
+
+          HF_USERNAME="${HF_SPACE%%/*}"
+          echo "Deploying to Space: ${HF_SPACE} (user: ${HF_USERNAME})"
+
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # IMPORTANT: GitHub is source of truth; force-push keeps Space in sync.
+          # If you edit files directly on HF Space repo, those changes will be overwritten.
+          HF_REMOTE="https://${HF_USERNAME}:${HF_TOKEN}@huggingface.co/spaces/${HF_SPACE}"
+
+          git push --force "${HF_REMOTE}" HEAD:main
