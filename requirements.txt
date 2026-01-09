@@ -3,3 +3,4 @@ jsonschema
 pandas
 numpy
 networkx
+pyvis

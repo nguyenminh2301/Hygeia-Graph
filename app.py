@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pandas as pd
 import streamlit as st
+import streamlit.components.v1 as components
 
 from hygeia_graph.contracts import (
     ContractValidationError,
@@ -21,6 +22,11 @@ from hygeia_graph.network_metrics import (
     make_nodes_meta,
 )
 from hygeia_graph.r_interface import RBackendError, run_mgm_subprocess
+from hygeia_graph.visualizer import (
+    build_pyvis_network,
+    network_to_html,
+    prepare_legend_html,
+)
 
 # Get repository root
 REPO_ROOT = Path(__file__).resolve().parent
@@ -847,6 +853,169 @@ def show_data_page():
         )
     else:
         st.info("No nodes to compute centrality.")
+
+    # Section 9: Interactive Network (PyVis)
+    st.divider()
+    st.subheader("9. Interactive Network (PyVis)")
+
+    # Check if we have valid results
+    if not st.session_state.results_json:
+        st.info("⬆️ Run MGM first to see the network visualization")
+        return
+
+    results = st.session_state.results_json
+    if results.get("status") != "success":
+        st.warning("⚠️ Model run failed; network visualization is unavailable.")
+        return
+
+    edges = results.get("edges", [])
+    nodes = results.get("nodes", [])
+
+    if not edges:
+        st.info("No edges found in results. Network visualization is empty.")
+        return
+
+    # Compute max weight for slider
+    max_abs_weight = max(abs(e.get("weight", 0)) for e in edges) if edges else 0
+
+    # Visualization controls
+    with st.expander("⚙️ Visualization Controls", expanded=True):
+        col1, col2 = st.columns(2)
+
+        with col1:
+            viz_use_absolute = st.checkbox(
+                "Use absolute edge weights (visualization)",
+                value=True,
+                key="viz_abs_weights",
+                help="Use |weight| for edge thickness",
+            )
+
+            # Edge threshold slider
+            viz_step = max(0.01, max_abs_weight / 100) if max_abs_weight > 0 else 0.01
+            viz_threshold = st.slider(
+                "Edge threshold (visualization)",
+                min_value=0.0,
+                max_value=float(max_abs_weight) if max_abs_weight > 0 else 1.0,
+                value=0.0,
+                step=viz_step,
+                key="viz_threshold",
+                help="Minimum weight to display edges",
+            )
+
+        with col2:
+            show_labels = st.checkbox(
+                "Show node labels",
+                value=True,
+                help="Display node labels on the graph",
+            )
+
+            physics_enabled = st.checkbox(
+                "Enable physics simulation",
+                value=True,
+                help="Allow nodes to move and settle",
+            )
+
+            max_edges_viz = st.number_input(
+                "Max edges to display",
+                min_value=10,
+                max_value=5000,
+                value=1000,
+                step=100,
+                help="Limit edges for browser performance",
+            )
+
+    # Filter edges for visualization
+    viz_filtered_edges = filter_edges_by_threshold(
+        results, viz_threshold, use_absolute_weights=viz_use_absolute
+    )
+
+    # Limit edges if too many
+    if len(viz_filtered_edges) > max_edges_viz:
+        st.warning(
+            f"⚠️ {len(viz_filtered_edges)} edges exceed limit. "
+            f"Showing top {max_edges_viz} by |weight|."
+        )
+        viz_filtered_edges = viz_filtered_edges[: int(max_edges_viz)]
+
+    # Performance warning
+    if len(nodes) > 500 or len(viz_filtered_edges) > 5000:
+        st.warning(
+            "⚠️ Large network detected. Consider increasing the threshold "
+            "for better browser performance."
+        )
+
+    # Show counts
+    col1, col2 = st.columns(2)
+    with col1:
+        st.metric("Nodes Displayed", len(nodes))
+    with col2:
+        st.metric("Edges Displayed", len(viz_filtered_edges))
+
+    # Build graph from filtered edges
+    if viz_filtered_edges:
+        # Create a results dict with only filtered edges for graph building
+        filtered_results = {
+            "nodes": results["nodes"],
+            "edges": viz_filtered_edges,
+        }
+        G_viz = build_graph_from_results(filtered_results, use_absolute_weights=viz_use_absolute)
+
+        # Build PyVis network
+        nodes_meta = make_nodes_meta(results)
+        net = build_pyvis_network(
+            G_viz,
+            nodes_meta=nodes_meta,
+            height="650px",
+            width="100%",
+            show_labels=show_labels,
+            physics=physics_enabled,
+        )
+
+        # Generate HTML
+        html = network_to_html(net)
+
+        # Show legend
+        with st.expander("📖 Legend"):
+            st.markdown(prepare_legend_html(), unsafe_allow_html=True)
+
+        # Render network
+        components.html(html, height=700, scrolling=True)
+
+        # Export options
+        st.write("### 📥 Exports")
+        col1, col2, col3 = st.columns(3)
+
+        with col1:
+            st.download_button(
+                label="Download network.html",
+                data=html,
+                file_name="network.html",
+                mime="text/html",
+            )
+
+        with col2:
+            # Edges CSV
+            nodes_meta_full = make_nodes_meta(results)
+            edges_df_export = edges_to_dataframe(viz_filtered_edges, nodes_meta_full)
+            csv_edges = edges_df_export.to_csv(index=False)
+            st.download_button(
+                label="Download edges.csv",
+                data=csv_edges,
+                file_name="edges_filtered.csv",
+                mime="text/csv",
+            )
+
+        with col3:
+            # Results JSON
+            results_str = json.dumps(results, indent=2, sort_keys=True)
+            st.download_button(
+                label="Download results.json",
+                data=results_str,
+                file_name="results.json",
+                mime="application/json",
+            )
+    else:
+        st.info("No edges above threshold to display.")
 
 
 if __name__ == "__main__":
