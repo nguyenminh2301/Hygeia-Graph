@@ -1,0 +1,25 @@
+cff-version: 1.2.0
+title: "Hygeia-Graph: Mixed Graphical Models for Medical Network Analysis"
+message: "If you use this software, please cite it as below."
+type: software
+authors:
+  - family-names: "Nguyen"
+    given-names: "Minh"
+    orcid: "https://orcid.org/0000-0000-0000-0000"
+version: "0.1.0"
+date-released: "2026-01-09"
+license: GPL-3.0-only
+repository-code: "https://github.com/nguyenminh2301/Hygeia-Graph"
+url: "https://github.com/nguyenminh2301/Hygeia-Graph"
+keywords:
+  - mixed-graphical-models
+  - network-analysis
+  - medical-research
+  - streamlit
+  - r-mgm
+abstract: >-
+  Hygeia-Graph is an interactive Streamlit application for 
+  Mixed Graphical Model (MGM) network analysis of medical data.
+  It supports mixed variable types (Gaussian, Categorical, Poisson),
+  uses EBIC regularization, provides network visualization via PyVis,
+  and exports reproducible analysis artifacts.

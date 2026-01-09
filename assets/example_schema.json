@@ -1,0 +1,81 @@
+{
+    "schema_version": "0.1.0",
+    "created_at": "2026-01-09T10:00:00Z",
+    "dataset": {
+        "name": "Example Clinical Dataset",
+        "description": "Synthetic clinical dataset for demonstrating Hygeia-Graph mixed graphical model analysis. Contains 150 patients with demographics, biomarkers, cancer staging, and healthcare utilization metrics.",
+        "row_count": 150,
+        "column_count": 6,
+        "missing": {
+            "cells": 0,
+            "rate": 0.0
+        }
+    },
+    "variables": [
+        {
+            "id": "age",
+            "column": "Age",
+            "label": "Patient Age",
+            "mgm_type": "g",
+            "measurement_level": "continuous",
+            "level": 1,
+            "domain_group": "Demographics"
+        },
+        {
+            "id": "crp",
+            "column": "CRP",
+            "label": "C-Reactive Protein",
+            "mgm_type": "g",
+            "measurement_level": "continuous",
+            "level": 1,
+            "domain_group": "Biomarkers"
+        },
+        {
+            "id": "gender",
+            "column": "Gender",
+            "label": "Gender",
+            "mgm_type": "c",
+            "measurement_level": "nominal",
+            "level": 2,
+            "domain_group": "Demographics",
+            "categories": [
+                "F",
+                "M"
+            ]
+        },
+        {
+            "id": "cancer_stage",
+            "column": "CancerStage",
+            "label": "Cancer Stage",
+            "mgm_type": "c",
+            "measurement_level": "ordinal",
+            "level": 4,
+            "domain_group": "Diagnosis",
+            "categories": [
+                "I",
+                "II",
+                "III",
+                "IV"
+            ]
+        },
+        {
+            "id": "hospital_days",
+            "column": "HospitalDays",
+            "label": "Hospital Days",
+            "mgm_type": "p",
+            "measurement_level": "count",
+            "level": 1,
+            "domain_group": "Utilization"
+        },
+        {
+            "id": "symptom_count",
+            "column": "SymptomCount",
+            "label": "Symptom Count",
+            "mgm_type": "p",
+            "measurement_level": "count",
+            "level": 1,
+            "domain_group": "Symptoms"
+        }
+    ],
+    "warnings": []
+}

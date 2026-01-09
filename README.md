@@ -1,234 +1,238 @@
 # Hygeia-Graph
 
-Mixed Graphical Models for medical network analysis — powered by Streamlit + R mgm.
+**Mixed Graphical Models for Medical Network Analysis**
 
-## Features
+Hygeia-Graph is an interactive Streamlit application that enables researchers to build and visualize Mixed Graphical Model (MGM) networks from medical datasets. It supports mixed variable types (continuous, categorical, count), uses EBIC regularization for sparse network estimation, and provides interactive PyVis visualization with exportable artifacts for reproducible research.
 
-- **Data Upload & Profiling**: Load CSV data with automatic type inference
-- **Schema Builder**: Generate validated `schema.json` contracts
-- **Model Specification**: Configure MGM with EBIC regularization
-- **R MGM Backend**: Execute Mixed Graphical Models via R subprocess
-- **Network Metrics**: Compute strength, betweenness, and closeness centrality
-- **Interactive Visualization**: PyVis network graphs with customizable styling
-- **Contract Validation**: JSON Schema validation for all artifacts
+## Key Features
 
-## Setup
+- **Mixed Variable Types**: Supports Gaussian (continuous), Categorical (nominal/ordinal), and Poisson (count) variables
+- **EBIC Regularization**: Extended Bayesian Information Criterion for optimal sparsity tuning
+- **Interactive Visualization**: PyVis network graphs with customizable node/edge styling
+- **Centrality Metrics**: Strength, betweenness, and closeness centrality computation
+- **Reproducible Artifacts**: Export `schema.json`, `model_spec.json`, `results.json` for full reproducibility
+- **Contract Validation**: JSON Schema validation ensures artifact integrity
+
+## Quickstart
 
 ### Prerequisites
-- Python 3.10 or higher
-- R 4.0+ (for MGM execution)
-- pip
+- Python 3.10+
+- R 4.0+ with `Rscript` on PATH (for MGM execution)
 
 ### Installation
 
-1. Clone the repository:
 ```bash
+# Clone repository
 git clone https://github.com/nguyenminh2301/Hygeia-Graph.git
 cd Hygeia-Graph
-```
 
-2. Install Python dependencies:
-```bash
+# Install Python dependencies
 pip install -r requirements.txt -r requirements-dev.txt
-pip install -e .
-```
-
-3. Install R packages (if R is installed):
-```bash
-Rscript r/install.R
-```
-
-## Running the Application
-
-Launch the Streamlit app:
-```bash
-streamlit run app.py
-```
-
-Then open http://localhost:8501 in your browser.
-
-## Deployment
-
-### Option 1: Local Run (with R)
-
-Best for development and full functionality.
-
-**Prerequisites**: Python 3.10+, R 4.0+
-
-```bash
-# Install Python deps
-pip install -r requirements.txt
 pip install -e .
 
 # Install R packages
 Rscript r/install.R
+```
 
-# Run
+### Run the Application
+
+```bash
 streamlit run app.py
 ```
 
-### Option 2: Streamlit Community Cloud (Best Effort)
+Open http://localhost:8501 in your browser.
 
-Deploy directly from GitHub with one click.
+## Tutorial: Run the Example
 
-**Steps**:
-1. Fork this repository
-2. Go to [share.streamlit.io](https://share.streamlit.io)
-3. Connect your GitHub account
-4. Select the repository and set main file to `app.py`
-5. Deploy
+Follow these steps to test Hygeia-Graph with the included example dataset:
 
-**Configuration files used**:
-- `requirements.txt` — Python dependencies
-- `packages.txt` — APT packages (R, libcurl, etc.)
+### Step 1: Upload Data
+1. Launch the app: `streamlit run app.py`
+2. In the sidebar, click **Browse files**
+3. Select `assets/example_data.csv`
+4. Wait for data profiling to complete
 
-**Known Limitations**:
-- R package installation (mgm, jsonlite) may require manual setup
-- If R packages fail to install, use Docker deployment instead
-- Data processing and schema building work without R
+### Step 2: Review Variable Types
+1. Scroll to the **Variable Settings** table
+2. Verify inferred types:
+   - Age, CRP → Gaussian (g)
+   - Gender → Categorical (c)
+   - CancerStage → Categorical (c), ordinal
+   - HospitalDays, SymptomCount → Poisson (p)
+3. Adjust if needed (uncommon with example data)
 
-### Option 3: Docker (Recommended for Reproducibility)
+### Step 3: Export Schema (Optional)
+1. Click **Export schema.json**
+2. Compare with `assets/example_schema.json`
 
-Guaranteed environment with Python + R + all packages.
+### Step 4: Configure Model Settings
+1. Scroll to **Model Settings / EBIC**
+2. Review defaults:
+   - EBIC gamma: 0.5
+   - Alpha: 0.5
+   - Rule: AND
+3. Adjust if experimenting
 
-**Build the image**:
+### Step 5: Run MGM
+1. Click **🚀 Run MGM (EBIC)**
+2. Wait for R subprocess (~10-30 seconds)
+3. View execution status
+
+### Step 6: Explore Results
+1. **Network Tables**: View filtered edge table and centrality rankings
+2. **Centrality**: Check which nodes are most central (e.g., CancerStage, HospitalDays)
+3. **Adjust threshold**: Use slider to filter weak edges
+
+### Step 7: Visualize Network
+1. Scroll to **Interactive Network (PyVis)**
+2. Explore the graph:
+   - Drag nodes to rearrange
+   - Hover for tooltips
+   - Toggle physics/labels
+3. Adjust edge threshold for clarity
+
+### Step 8: Export Results
+Download these artifacts:
+- `results.json` — Full MGM output
+- `edges_filtered.csv` — Edge table
+- `centrality.csv` — Centrality metrics
+- `network.html` — Standalone visualization
+
+## Methods
+
+Hygeia-Graph implements **pairwise Mixed Graphical Models (k=2)** using the R `mgm` package.
+
+### Key Settings
+| Setting | Default | Description |
+|---------|---------|-------------|
+| Lambda selection | EBIC | Extended Bayesian Information Criterion |
+| EBIC gamma | 0.5 | Sparsity control (0–1) |
+| Alpha | 0.5 | Elastic net mixing (0=Ridge, 1=Lasso) |
+| Edge aggregator | max_abs | Map parameter blocks to scalar weights |
+| Sign strategy | dominant | Assign edge sign from largest parameter |
+| Missing policy | warn_and_abort | No internal imputation |
+
+### Missing Data
+Hygeia-Graph does **not** impute missing values. If missing data is detected, analysis aborts with a warning. Users must preprocess data externally (e.g., using MICE for multiple imputation).
+
+📖 **Full details**: See [docs/METHODS.md](docs/METHODS.md)
+
+## Reproducibility
+
+### Saved Artifacts
+Each analysis produces three JSON artifacts:
+
+1. **schema.json**: Variable definitions, types, and metadata
+2. **model_spec.json**: Model configuration and parameters
+3. **results.json**: Network nodes, edges, and analysis metadata
+
+### Traceability
+- Each artifact includes `analysis_id` (UUID) linking them together
+- Input files are hashed (SHA256) for verification
+- Timestamps track when artifacts were created
+
+### Re-running Analysis
+With saved artifacts, you can:
+1. Load the same data
+2. Import `schema.json` and `model_spec.json`
+3. Re-run MGM to reproduce identical results
+
+## Deployment
+
+### Local (Recommended for Development)
 ```bash
-docker build -t hygeia-graph .
+pip install -r requirements.txt -e .
+Rscript r/install.R
+streamlit run app.py
 ```
 
-**Run the container**:
+### Streamlit Community Cloud
+Deploy from GitHub to [share.streamlit.io](https://share.streamlit.io):
+- Uses `requirements.txt` + `packages.txt`
+- ⚠️ R packages may require manual setup
+
+### Docker (Recommended for Production)
 ```bash
+# Build
+docker build -t hygeia-graph .
+
+# Run
 docker run -p 8501:8501 hygeia-graph
 ```
 
-**Custom port**:
-```bash
-docker run -p 8080:8080 -e PORT=8080 hygeia-graph
-```
+📖 **Deployment details**: See [reports/STEP9_REPORT.md](reports/STEP9_REPORT.md)
 
-**Deploy to cloud platforms**:
-- **Google Cloud Run**: `gcloud run deploy`
-- **Hugging Face Spaces**: Docker mode
-- **Render.com**: Docker deploy
-- **Fly.io**: `fly launch`
+## Troubleshooting
 
-## Development
+### Common Issues
 
-### Running Tests
-```bash
-pytest -q
-```
+| Issue | Solution |
+|-------|----------|
+| ModuleNotFoundError: hygeia_graph | `pip install -e .` |
+| Rscript not found | Install R and add to PATH |
+| mgm package missing | `Rscript r/install.R` |
+| Missing values abort | Preprocess data to remove/impute NA |
 
-> **Note**: R-dependent tests skip automatically if R is not installed.
-> Run locally with R to fully verify the MGM pipeline.
-
-### Linting
-```bash
-ruff check .
-```
-
-### Code Formatting
-```bash
-# Check
-ruff format --check .
-
-# Auto-format
-ruff format .
-```
-
-## Contract Validation
-
-Hygeia-Graph uses JSON Schema (Draft 2020-12) to validate three core contract types:
-- `schema.json`: Dataset metadata and variable specifications
-- `model_spec.json`: MGM model parameters and configuration
-- `results.json`: MGM execution results and network data
-
-### Validating Contracts
-
-```bash
-# Validate schema contract
-python -m hygeia_graph.validate schema path/to/schema.json
-
-# Validate model spec contract
-python -m hygeia_graph.validate model_spec path/to/model_spec.json
-
-# Validate results contract
-python -m hygeia_graph.validate results path/to/results.json
-```
-
-### Using Validation in Python
-
-```python
-from hygeia_graph.contracts import (
-    validate_schema_json,
-    validate_model_spec_json,
-    validate_results_json,
-    ContractValidationError
-)
-
-try:
-    validate_schema_json(my_schema_dict)
-    print("Valid!")
-except ContractValidationError as e:
-    print(f"Validation failed: {e}")
-```
+📖 **Full guide**: See [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)
 
 ## Project Structure
 
 ```
 Hygeia-Graph/
-├── app.py                      # Streamlit application entry point
-├── src/
-│   └── hygeia_graph/           # Main package
-│       ├── __init__.py
-│       ├── contracts.py        # JSON Schema validation
-│       ├── data_processor.py   # CSV loading & profiling
-│       ├── model_spec.py       # Model specification builder
-│       ├── r_interface.py      # R subprocess bridge
-│       ├── network_metrics.py  # NetworkX centrality
-│       └── visualizer.py       # PyVis visualization
-├── r/
-│   ├── install.R               # R package installer
-│   └── run_mgm.R               # MGM execution script
-├── contracts/                   # JSON Schema contracts
-│   ├── schema.schema.json
-│   ├── model_spec.schema.json
-│   └── results.schema.json
-├── tests/                       # Test suite
-├── reports/                     # Step reports
-├── Dockerfile                   # Docker deployment
-├── packages.txt                 # Streamlit Cloud APT packages
-├── requirements.txt             # Python runtime dependencies
-├── requirements-dev.txt         # Development dependencies
-└── pyproject.toml              # Project configuration
+├── app.py                      # Streamlit entry point
+├── src/hygeia_graph/           # Python package
+│   ├── contracts.py            # JSON Schema validation
+│   ├── data_processor.py       # CSV loading & profiling
+│   ├── model_spec.py           # Model specification builder
+│   ├── r_interface.py          # R subprocess bridge
+│   ├── network_metrics.py      # Centrality computation
+│   └── visualizer.py           # PyVis visualization
+├── r/                          # R backend
+│   ├── install.R               # Package installer
+│   └── run_mgm.R               # MGM execution
+├── contracts/                  # JSON Schema contracts
+├── assets/                     # Example data & artifacts
+├── docs/                       # Documentation
+├── tests/                      # Test suite
+└── reports/                    # Step reports
 ```
-
-## Troubleshooting
-
-### "Rscript not found"
-Install R from https://cran.r-project.org/ and ensure `Rscript` is on PATH.
-
-### "mgm package missing"
-Run `Rscript r/install.R` to install required R packages.
-
-### "ModuleNotFoundError: hygeia_graph"
-Install the package in development mode:
-```bash
-pip install -e .
-```
-
-### R tests skipping in CI
-This is expected behavior. CI does not have R installed. Run tests locally with R to fully verify the pipeline.
-
-## CI/CD
-
-GitHub Actions automatically runs:
-- Ruff linting (`ruff check`)
-- Code formatting validation (`ruff format --check`)
-- Test suite (`pytest`)
-
-All checks must pass before merging pull requests.
 
 ## License
 
-MIT License — see LICENSE file for details.
+This project is licensed under the **GNU General Public License v3.0** — see [LICENSE](LICENSE) for details.
+
+### Disclaimer
+
+Hygeia-Graph is a **research tool** intended for exploratory network analysis. It is **not** a medical device and should **not** be used for clinical decision-making or diagnosis. Results should be interpreted by qualified researchers in the context of the specific study design and data limitations.
+
+## Citation
+
+If you use Hygeia-Graph in your research, please cite:
+
+```bibtex
+@software{hygeia_graph,
+  author       = {Nguyen, Minh},
+  title        = {{Hygeia-Graph}: Mixed Graphical Models for Medical Network Analysis},
+  year         = {2026},
+  version      = {0.1.0},
+  url          = {https://github.com/nguyenminh2301/Hygeia-Graph}
+}
+```
+
+See also: [CITATION.cff](CITATION.cff) | [CITATION.bib](CITATION.bib)
+
+## Contributing
+
+Contributions are welcome! Please:
+1. Fork the repository
+2. Create a feature branch
+3. Submit a pull request
+
+Ensure all tests pass: `pytest -q && ruff check .`
+
+## Acknowledgments
+
+- [mgm R package](https://cran.r-project.org/package=mgm) by Haslbeck & Waldorp
+- [Streamlit](https://streamlit.io/) for the web framework
+- [PyVis](https://pyvis.readthedocs.io/) for network visualization
+- [NetworkX](https://networkx.org/) for graph algorithms
