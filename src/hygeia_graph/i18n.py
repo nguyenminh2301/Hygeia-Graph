@@ -87,18 +87,52 @@ có thể xuất để nghiên cứu có thể tái tạo.""",
         "vi": "Bắt đầu nhanh",
     },
     "quickstart_steps": {
-        "en": """1. **Upload Data**: Click on "Data Upload & Schema Builder" in the sidebar
-2. **Review Variables**: Check auto-inferred variable types
-3. **Configure Model**: Set EBIC parameters
-4. **Run MGM**: Execute the Mixed Graphical Model
-5. **Explore Results**: View network tables and visualization
-6. **Export**: Download results.json, network.html, CSV files""",
-        "vi": """1. **Tải dữ liệu**: Nhấp vào "Tải dữ liệu & Xây dựng Schema" ở thanh bên
-2. **Xem xét biến**: Kiểm tra các loại biến được suy luận tự động
-3. **Cấu hình mô hình**: Thiết lập tham số EBIC
-4. **Chạy MGM**: Thực thi Mô hình Đồ thị Hỗn hợp
-5. **Khám phá kết quả**: Xem bảng mạng và trực quan hóa
-6. **Xuất**: Tải xuống results.json, network.html, các tệp CSV""",
+        "en": """1. **Upload Data**
+    - Go to **Data Upload & Schema Builder**.
+    - Upload your CSV file (must include header).
+    - Review the "Data Preview" and "Data Profiling" sections to ensure correct loading.
+
+2. **Configure Variables**
+    - Check the "Variable Configuration" table.
+    - Verify `mgm_type`: **g** (Gaussian/Continuous), **c** (Categorical), **p** (Poisson/Count).
+    - *Tip*: Variables with few unique values (e.g., <5) are usually Categorical.
+
+3. **Set Model Parameters**
+    - **EBIC Gamma**: Controls sparsity. Default 0.5 is standard. Set to 0.25 for more edges, 0.75 for fewer.
+    - **Rule Reg**: 'AND' is safer (fewer false positives). 'OR' is more sensitive.
+
+4. **Run Analysis**
+    - Click **Build & Validate model_spec.json**.
+    - Expand "Pre-run Checklist" to ensure all green.
+    - Click **🚀 Run MGM (EBIC)**.
+
+5. **Visualize & Export**
+    - View the interactive network graph.
+    - Adjust "Edge Threshold" slider to filter weak edges.
+    - Download `results.json` and `network.html` for your report.""",
+        "vi": """1. **Tải dữ liệu**
+    - Vào trang **Tải dữ liệu & Xây dựng Schema**.
+    - Tải tệp CSV của bạn lên (phải có hàng tiêu đề).
+    - Xem phần "Xem trước dữ liệu" và "Phân tích dữ liệu" để đảm bảo tải đúng.
+
+2. **Cấu hình biến**
+    - Kiểm tra bảng "Cấu hình biến".
+    - Xác minh `mgm_type`: **g** (Gaussian/Liên tục), **c** (Phân loại), **p** (Poisson/Đếm).
+    - *Mẹo*: Biến có ít giá trị duy nhất (ví dụ: <5) thường là Phân loại.
+
+3. **Thiết lập tham số mô hình**
+    - **EBIC Gamma**: Kiểm soát độ thưa. Mặc định 0.5 là chuẩn. Đặt 0.25 để có nhiều cạnh hơn, 0.75 để ít cạnh hơn.
+    - **Rule Reg**: 'AND' an toàn hơn (ít dương tính giả). 'OR' nhạy hơn.
+
+4. **Chạy phân tích**
+    - Nhấp **Xây dựng & Xuất Đặc tả Mô hình**.
+    - Mở rộng "Danh sách kiểm tra trước khi chạy" để đảm bảo tất cả đều xanh.
+    - Nhấp **🚀 Chạy MGM (EBIC)**.
+
+5. **Trực quan hóa & Xuất**
+    - Xem biểu đồ mạng tương tác.
+    - Điều chỉnh thanh trượt "Ngưỡng cạnh" để lọc các cạnh yếu.
+    - Tải xuống `results.json` và `network.html` cho báo cáo của bạn.""",
     },
     "home_methods": {
         "en": "Methods",
@@ -338,6 +372,67 @@ Kết quả nên được diễn giải bởi các nhà nghiên cứu có chuyê
     "run_mgm_first_viz": {
         "en": "⬆️ Run MGM first to see network visualization",
         "vi": "⬆️ Chạy MGM trước để xem trực quan hóa mạng",
+    },
+    # Help text & Tooltips
+    "help_ebic_gamma": {
+        "en": "Tuning parameter for EBIC (0 to 1). Higher values (e.g., 0.5) penalize complexity more, resulting in sparser networks. Lower values (e.g., 0) allow more edges.",
+        "vi": "Tham số điều chỉnh cho EBIC (0 đến 1). Giá trị cao (ví dụ: 0.5) phạt độ phức tạp nhiều hơn, dẫn đến mạng thưa hơn. Giá trị thấp (ví dụ: 0) cho phép nhiều cạnh hơn.",
+    },
+    "help_alpha": {
+        "en": "Elastic net mixing parameter (0 to 1). 1 = Lasso (sparse), 0 = Ridge (dense), 0.5 = Elastic Net (balance).",
+        "vi": "Tham số trộn Elastic net (0 đến 1). 1 = Lasso (thưa), 0 = Ridge (dày), 0.5 = Elastic Net (cân bằng).",
+    },
+    "help_rule_reg": {
+        "en": "Rule to combine edge weights from two nodewise regressions. 'AND' requires both directions to be non-zero (conservative). 'OR' requires at least one.",
+        "vi": "Quy tắc kết hợp trọng số cạnh từ hai hồi quy nút. 'AND' yêu cầu cả hai chiều đều khác không (thận trọng). 'OR' yêu cầu ít nhất một.",
+    },
+    "help_overparameterize": {
+        "en": "If checked, estimates overparameterized model for categorical variables. Standard for MGM.",
+        "vi": "Nếu chọn, ước lượng mô hình quá tham số cho biến phân loại. Chuẩn cho MGM.",
+    },
+    "help_scale_gaussian": {
+        "en": "Standardize Gaussian variables to mean=0, std=1 before estimation. Recommended.",
+        "vi": "Chuẩn hóa biến Gaussian về trung bình=0, độ lệch chuẩn=1 trước khi ước lượng. Khuyên dùng.",
+    },
+    "help_sign_info": {
+        "en": "Attempt to recover edge sign (positive/negative relationship) from parameters.",
+        "vi": "Cố gắng khôi phục dấu của cạnh (mối quan hệ tích cực/tiêu cực) từ tham số.",
+    },
+    "help_random_seed": {
+        "en": "Set random seed for reproducibility of cross-validation (if used).",
+        "vi": "Đặt seed ngẫu nhiên để tái tạo kết quả kiểm chứng chéo (nếu dùng).",
+    },
+    "help_aggregator": {
+        "en": "Method to combine multiple parameters (e.g., for categorical variables) into a single edge weight scalar.",
+        "vi": "Phương pháp kết hợp nhiều tham số (ví dụ: cho biến phân loại) thành một trọng số cạnh vô hướng.",
+    },
+    "help_sign_strategy": {
+        "en": "How to assign a sign (+/-) to the aggregated edge weight. 'dominant' uses the sign of the parameter with largest magnitude.",
+        "vi": "Cách gán dấu (+/-) cho trọng số cạnh đã tổng hợp. 'dominant' dùng dấu của tham số có độ lớn nhất.",
+    },
+    "help_zero_tol": {
+        "en": "Parameters smaller than this threshold are treated as zero.",
+        "vi": "Tham số nhỏ hơn ngưỡng này được coi là không.",
+    },
+    "help_edge_threshold": {
+        "en": "Hide edges with absolute weight below this value in visualizations and tables.",
+        "vi": "Ẩn các cạnh có trọng số tuyệt đối dưới giá trị này trong trực quan hóa và bảng.",
+    },
+    "help_layout": {
+        "en": "Algorithm for positioning nodes in the graph visualization.",
+        "vi": "Thuật toán định vị các nút trong trực quan hóa đồ thị.",
+    },
+    "help_centrality_compute": {
+        "en": "Calculate Strength, Betweenness, and Closeness centrality metrics.",
+        "vi": "Tính toán các chỉ số trung tâm: Độ mạnh, Trung gian, và Độ gần.",
+    },
+    "help_centrality_weighted": {
+        "en": "Use edge weights in centrality calculations (vs treating all edges as 1).",
+        "vi": "Sử dụng trọng số cạnh trong tính toán trung tâm (so với coi tất cả cạnh là 1).",
+    },
+    "help_centrality_abs": {
+        "en": "Use absolute values of edge weights for centrality (avoids cancellation of pos/neg effects).",
+        "vi": "Sử dụng giá trị tuyệt đối của trọng số cạnh cho tính trung tâm (tránh triệt tiêu tác động ranh/âm).",
     },
 }
 

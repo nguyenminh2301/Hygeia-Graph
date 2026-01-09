@@ -351,7 +351,7 @@ def show_data_page(lang: str = "en"):
                 max_value=1.0,
                 value=st.session_state.model_settings["mgm"]["regularization"]["ebic_gamma"],
                 step=0.05,
-                help="EBIC hyperparameter for model selection (0=BIC, 0.5=default, 1=more penalty)",
+                help=t("help_ebic_gamma", lang),
             )
 
             alpha = st.slider(
@@ -360,41 +360,41 @@ def show_data_page(lang: str = "en"):
                 max_value=1.0,
                 value=st.session_state.model_settings["mgm"]["regularization"]["alpha"],
                 step=0.05,
-                help="Elastic net mixing (0=Ridge, 0.5=default, 1=Lasso)",
+                help=t("help_alpha", lang),
             )
 
             rule_reg = st.selectbox(
                 "Rule Regularization",
                 options=["AND", "OR"],
                 index=0 if st.session_state.model_settings["mgm"]["rule_reg"] == "AND" else 1,
-                help="Regularization rule for pairwise interactions",
+                help=t("help_rule_reg", lang),
             )
 
         with col2:
             overparameterize = st.checkbox(
                 "Overparameterize",
                 value=st.session_state.model_settings["mgm"]["overparameterize"],
-                help="Use overparameterized model",
+                help=t("help_overparameterize", lang),
             )
 
             scale_gaussian = st.checkbox(
                 "Scale Gaussian",
                 value=st.session_state.model_settings["mgm"]["scale_gaussian"],
-                help="Standardize Gaussian variables",
+                help=t("help_scale_gaussian", lang),
             )
 
             sign_info = st.checkbox(
                 "Sign Info",
                 value=st.session_state.model_settings["mgm"]["sign_info"],
-                help="Include sign information in edge weights",
+                help=t("help_sign_info", lang),
             )
 
             random_seed = st.number_input(
-                "Random Seed",
+                t("random_seed", lang),
                 min_value=0,
                 value=st.session_state.model_settings["random_seed"],
                 step=1,
-                help="Random seed for reproducibility",
+                help=t("help_random_seed", lang),
             )
 
         # Update settings
@@ -417,7 +417,7 @@ def show_data_page(lang: str = "en"):
                 index=["max_abs", "l2_norm", "mean", "mean_abs", "sum_abs", "max"].index(
                     st.session_state.model_settings["edge_mapping"]["aggregator"]
                 ),
-                help="Method for aggregating pairwise parameters to single edge weight",
+                help=t("help_aggregator", lang),
             )
 
         with col2:
@@ -427,7 +427,7 @@ def show_data_page(lang: str = "en"):
                 index=["dominant", "mean", "none"].index(
                     st.session_state.model_settings["edge_mapping"]["sign_strategy"]
                 ),
-                help="Strategy for determining edge sign",
+                help=t("help_sign_strategy", lang),
             )
 
         with col3:
@@ -436,7 +436,7 @@ def show_data_page(lang: str = "en"):
                 min_value=0.0,
                 value=st.session_state.model_settings["edge_mapping"]["zero_tolerance"],
                 format="%.2e",
-                help="Threshold for treating values as zero",
+                help=t("help_zero_tol", lang),
             )
 
         # Update settings
@@ -454,7 +454,7 @@ def show_data_page(lang: str = "en"):
                 min_value=0.0,
                 value=st.session_state.model_settings["visualization"]["edge_threshold"],
                 step=0.01,
-                help="Minimum edge weight to display",
+                help=t("help_edge_threshold", lang),
             )
 
             layout = st.selectbox(
@@ -463,26 +463,26 @@ def show_data_page(lang: str = "en"):
                 index=["force", "circle", "random"].index(
                     st.session_state.model_settings["visualization"]["layout"]
                 ),
-                help="Graph layout algorithm",
+                help=t("help_layout", lang),
             )
 
         with col2:
             compute_centrality = st.checkbox(
                 "Compute Centrality",
                 value=st.session_state.model_settings["centrality"]["compute"],
-                help="Calculate centrality metrics",
+                help=t("help_centrality_compute", lang),
             )
 
             weighted = st.checkbox(
                 "Weighted Centrality",
                 value=st.session_state.model_settings["centrality"]["weighted"],
-                help="Use edge weights in centrality calculation",
+                help=t("help_centrality_weighted", lang),
             )
 
             use_absolute = st.checkbox(
                 "Use Absolute Weights",
                 value=st.session_state.model_settings["centrality"]["use_absolute_weights"],
-                help="Use absolute values of edge weights",
+                help=t("help_centrality_abs", lang),
             )
 
         # Update settings
