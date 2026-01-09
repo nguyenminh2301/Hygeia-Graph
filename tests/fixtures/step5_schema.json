@@ -1,0 +1,53 @@
+{
+    "schema_version": "0.1.0",
+    "created_at": "2026-01-09T00:00:00Z",
+    "dataset": {
+        "row_count": 20,
+        "column_count": 3,
+        "missing": {
+            "cells": 0,
+            "rate": 0.0,
+            "by_variable": []
+        }
+    },
+    "variables": [
+        {
+            "id": "age",
+            "column": "age",
+            "mgm_type": "g",
+            "measurement_level": "continuous",
+            "level": 1,
+            "label": "Age",
+            "encoding": {
+                "strategy": "identity"
+            }
+        },
+        {
+            "id": "height",
+            "column": "height",
+            "mgm_type": "g",
+            "measurement_level": "continuous",
+            "level": 1,
+            "label": "Height",
+            "encoding": {
+                "strategy": "identity"
+            }
+        },
+        {
+            "id": "group",
+            "column": "group",
+            "mgm_type": "c",
+            "measurement_level": "nominal",
+            "level": 3,
+            "label": "Group",
+            "categories": [
+                "A",
+                "B",
+                "C"
+            ],
+            "encoding": {
+                "strategy": "categorical_codes"
+            }
+        }
+    ]
+}
