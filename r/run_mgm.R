@@ -139,7 +139,6 @@ tryCatch({
   results$input$schema_sha256 <- compute_file_hash(schema_path)
   results$input$spec_sha256 <- compute_file_hash(spec_path)
   results$input$data_sha256 <- compute_file_hash(data_path)
-  results$input$schema_ref <- "schema.json"
   
   # === Load Data CSV ===
   if (!quiet) cat("Loading data...\n")
