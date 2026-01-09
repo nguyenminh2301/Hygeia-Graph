@@ -1,0 +1,11 @@
+# APT packages for Streamlit Community Cloud
+# These are installed via apt-get during deployment
+
+# R runtime and development tools
+r-base
+r-base-dev
+
+# Common build dependencies for R packages
+libcurl4-openssl-dev
+libssl-dev
+libxml2-dev
