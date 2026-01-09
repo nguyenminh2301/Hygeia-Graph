@@ -13,6 +13,7 @@ from hygeia_graph.contracts import (
     validate_schema_json,
 )
 from hygeia_graph.data_processor import build_schema_json, infer_variables, load_csv, profile_df
+from hygeia_graph.i18n import LANGUAGES, t
 from hygeia_graph.model_spec import build_model_spec, default_model_settings, sanitize_settings
 from hygeia_graph.network_metrics import (
     build_graph_from_results,
@@ -59,47 +60,95 @@ def main():
     """Main Streamlit application."""
     st.set_page_config(page_title="Hygeia-Graph", layout="wide")
 
-    st.title("Hygeia-Graph")
-    st.markdown("Graph-based analysis tool for healthcare contracts")
+    # Initialize language in session state
+    if "lang" not in st.session_state:
+        st.session_state.lang = "en"
+
+    # Language selector in sidebar
+    lang_options = list(LANGUAGES.keys())
+    current_idx = lang_options.index(st.session_state.lang)
+
+    selected_lang = st.sidebar.selectbox(
+        "🌐 Language / Ngôn ngữ",
+        options=lang_options,
+        format_func=lambda x: LANGUAGES[x],
+        index=current_idx,
+        key="lang_select",
+    )
+    st.session_state.lang = selected_lang
+    lang = st.session_state.lang
+
+    st.title(t("app_title", lang))
+    st.markdown(t("app_description", lang))
 
     # Sidebar navigation
-    page = st.sidebar.radio(
-        "Navigation",
-        ["Home", "Data Upload & Schema Builder"],
+    nav_options = ["home", "data_upload"]
+    nav_labels = [t("nav_home", lang), t("nav_data_upload", lang)]
+
+    page_idx = st.sidebar.radio(
+        t("nav_navigation", lang),
+        range(len(nav_options)),
+        format_func=lambda i: nav_labels[i],
         index=0,
     )
+    page = nav_options[page_idx]
 
-    if page == "Home":
-        show_home_page()
-    elif page == "Data Upload & Schema Builder":
-        show_data_page()
+    if page == "home":
+        show_home_page(lang)
+    elif page == "data_upload":
+        show_data_page(lang)
 
 
-def show_home_page():
-    """Display home page with contract validation."""
-    st.header("Contract Schema Validation")
+def show_home_page(lang: str = "en"):
+    """Display home page with project info and contract validation."""
+    # About section
+    st.header(t("home_about", lang))
+    st.markdown(t("home_description", lang))
 
+    # Key Features
+    st.header(t("home_features", lang))
+    st.markdown(t("feature_mixed_types", lang))
+    st.markdown(t("feature_ebic", lang))
+    st.markdown(t("feature_visualization", lang))
+    st.markdown(t("feature_centrality", lang))
+    st.markdown(t("feature_reproducible", lang))
+    st.markdown(t("feature_validation", lang))
+
+    # Quick Start
+    st.header(t("home_quickstart", lang))
+    st.markdown(t("quickstart_steps", lang))
+
+    # Methods
+    with st.expander(t("home_methods", lang), expanded=False):
+        st.markdown(t("methods_description", lang))
+
+    # Disclaimer
+    with st.expander(t("home_disclaimer", lang), expanded=False):
+        st.warning(t("disclaimer_text", lang))
+
+    # Contract validation
+    st.header(t("contract_validation", lang))
     found, missing = check_contracts()
 
     if not missing:
-        st.success("✅ All contract schemas found!")
-        st.write("**Found schemas:**")
+        st.success(t("contracts_found", lang))
+        st.write(f"**{t('found_schemas', lang)}**")
         for contract in found:
             st.write(f"- {contract}")
     else:
-        st.error("❌ Missing contract schemas!")
-        st.write("**Missing:**")
+        st.error(t("contracts_missing", lang))
+        st.write(f"**{t('missing_schemas', lang)}**")
         for contract in missing:
             st.write(f"- {contract}")
         if found:
-            st.write("**Found:**")
+            st.write(f"**{t('found_schemas', lang)}**")
             for contract in found:
                 st.write(f"- {contract}")
 
 
-def show_data_page():
+def show_data_page(lang: str = "en"):
     """Display data upload and schema builder page."""
-    st.header("Data Upload & Schema Builder")
+    st.header(t("nav_data_upload", lang))
 
     # Initialize session state
     if "df" not in st.session_state:
