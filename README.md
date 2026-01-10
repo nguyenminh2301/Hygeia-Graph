@@ -16,10 +16,12 @@ Hygeia-Graph is an interactive Streamlit application that enables researchers to
 ## Key Features
 
 - **Mixed Variable Types**: Supports Gaussian (continuous), Categorical (nominal/ordinal), and Poisson (count) variables
-- **EBIC Regularization**: Extended Bayesian Information Criterion for optimal sparsity tuning
+- **Advanced Network Analysis**: Mixed Graphical Models (MGM), Vector Autoregression (VAR), and Longitudinal Flow
+- **Robustness & Comparison**: Bootnet (stability analysis) and NCT (Network Comparison Test)
+- **Feature Selection**: LASSO preprocessing for high-dimensional data
 - **Interactive Visualization**: PyVis network graphs with customizable node/edge styling
-- **Centrality Metrics**: Strength, betweenness, and closeness centrality computation
-- **Reproducible Artifacts**: Export `schema.json`, `model_spec.json`, `results.json` for full reproducibility
+- **Localization**: Full support for English and Vietnamese (Tiếng Việt)
+- **Reproducibility**: Export `schema.json`, `model_spec.json`, `results.json` artifacts
 - **Contract Validation**: JSON Schema validation ensures artifact integrity
 
 ## Quickstart

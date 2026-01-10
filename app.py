@@ -2,7 +2,7 @@
 
 import streamlit as st
 
-from hygeia_graph.i18n import LANGUAGES
+from hygeia_graph.locale import LANGUAGES, t
 from hygeia_graph.ui_pages import (
     compute_explore_artifacts,
     init_session_state,
@@ -14,6 +14,7 @@ from hygeia_graph.ui_pages import (
     render_robustness_page,
     render_run_mgm_page,
     render_simulation_page,
+    render_introduction_page,
 )
 from hygeia_graph.ui_state import (
     clear_analysis_cache,
@@ -32,8 +33,6 @@ def main():
     # 1. Initialize State
     init_session_state()
 
-    # Language selector (Top of sidebar? or just before nav)
-    # Keeping minimal as requested
     if "lang" not in st.session_state:
         st.session_state.lang = "en"
 
@@ -41,13 +40,16 @@ def main():
     # SIDEBAR: Control Tower
     # ---------------------------------------------------------
     with st.sidebar:
-        st.title("Hygeia-Graph")
+        st.title(t("app_title", st.session_state.lang))
 
         # Language
         lang_options = list(LANGUAGES.keys())
         idx = lang_options.index(st.session_state.lang)
         sel_lang = st.selectbox(
-            "🌐 Language", options=lang_options, format_func=lambda x: LANGUAGES[x], index=idx
+            t("language", st.session_state.lang),
+            options=lang_options,
+            format_func=lambda x: LANGUAGES[x],
+            index=idx,
         )
         st.session_state.lang = sel_lang
         lang = st.session_state.lang
@@ -58,9 +60,9 @@ def main():
         st.subheader("Session Summary")
         if st.session_state.df is not None:
             st.caption(
-                f"Rows: {len(st.session_state.df)}, Cols: {len(st.session_state.df.columns)}"
+                f"{t('rows', lang)}: {len(st.session_state.df)}, {t('columns', lang)}: {len(st.session_state.df.columns)}"
             )
-            st.caption(f"Missing: {st.session_state.missing_rate:.1%}")
+            st.caption(f"{t('missing_rate', lang)}: {st.session_state.missing_rate:.1%}")
         else:
             st.caption("No data loaded")
 
@@ -103,7 +105,6 @@ def main():
             diagnostics_to_json,
         )
 
-        # Cache check results in session to avoid repeated subprocess calls
         if "env_check_cache" not in st.session_state:
             r_check = check_rscript()
             pkg_check = check_r_packages(REQUIRED_PACKAGES) if r_check["ok"] else None
@@ -128,7 +129,6 @@ def main():
         elif not r_status["ok"]:
             st.caption("⚠️ Cannot check packages")
 
-        # Diagnostics download
         if st.button("📥 Download diagnostics.json", key="diag_dl"):
             report = build_diagnostics_report(
                 df=st.session_state.df,
@@ -145,69 +145,91 @@ def main():
         st.divider()
 
         # B) Navigation
-        # Options
-        nav_map = {
-            "Data & Schema": "Data & Schema",
-            "Model Settings": "Model Settings",
-            "Run MGM": "Run MGM",
-            "Explore": "Explore",
-            "Robustness": "Robustness",
-            "Comparison": "Comparison (Coming Soon)",
-            "Simulation": "Simulation (Experimental)",
-            "Preprocessing": "Preprocessing",
-            "Report & Export": "Report & Export",
+        st.subheader("Navigation")
+        
+        # Define Page Groups
+        nav_options_core = {
+            "Introduction": t("nav_intro", lang),
+            "Data & Schema": t("nav_data_upload", lang),
+            "Model Settings": t("model_settings", lang),
+            "Run MGM": t("run_mgm", lang),
+            "Explore": t("interactive_network", lang),
+            "Report & Export": t("nav_publication", lang),
+        }
+        
+        nav_options_advanced = {
+            "Preprocessing": t("nav_preprocess", lang),
+            "Robustness": t("nav_robustness", lang),
+            "Comparison": t("nav_comparison", lang),
+            "Simulation": t("nav_simulation", lang),
         }
 
-        # Gating logic
-        valid_schema = st.session_state.schema_valid
-        valid_spec = st.session_state.model_spec_valid
-        run_success = (
-            st.session_state.results_json is not None
-            and st.session_state.results_json.get("status") == "success"
-        )
-        missing_ok = st.session_state.missing_rate == 0
-
-        # Determine accessible pages (visual cue only, or strict blocking?)
-        # Spec says "Behavior: Only show content... Gating: ..."
-        # I'll rely on radio logic but maybe filter options?
-        # Better: keep options but show disabled or redirect if selected?
-        # Radio doesn't support disabling individual options easily.
-        # I will check selection in main area and show "Locked".
-
-        nav_selection = st.radio("Navigation", list(nav_map.keys()))
+        # Combine all for selection map
+        full_nav_map = {**nav_options_core, **nav_options_advanced}
+        
+        # Display logic - we can stick to a single radio for simplicity or grouped
+        # st.radio doesn't support groups nicely. Let's list them in order.
+        
+        nav_order = [
+            "Introduction",
+            "Data & Schema",
+            "Preprocessing",  # Moved here as requested (Branch point)
+            "Model Settings",
+            "Run MGM",
+            "Explore",
+            "Robustness",
+            "Comparison",
+            "Simulation",
+            "Report & Export",
+        ]
+        
+        nav_labels = [full_nav_map[k] for k in nav_order]
+        
+        # Default index
+        curr_sel = st.session_state.get("nav_selection", "Introduction")
+        if curr_sel not in nav_order:
+            curr_sel = "Introduction"
+            
+        nav_idx = nav_order.index(curr_sel)
+        
+        sel_label = st.radio("Go to:", nav_labels, index=nav_idx)
+        
+        # Reverse map label to key
+        # Use simple zip lookup since labels might be localized and distinct
+        sel_key = nav_order[nav_labels.index(sel_label)]
+        
+        st.session_state["nav_selection"] = sel_key
+        nav_selection = sel_key
 
         st.divider()
 
-        # C) Explore Controls
+        # C) Explore Controls (Only visible on Explore page)
         explore_cfg = {}
         config_hash_val = ""
 
-        if nav_selection == "Explore" and run_success:
+        if nav_selection == "Explore":
             st.subheader("Explore Controls")
 
-            # Defaults
             if "explore_config_cache" not in st.session_state:
                 st.session_state.explore_config_cache = get_default_explore_config(
                     st.session_state.results_json
                 )
 
-            # Compute max weight
             max_abs = 0.0
-            if st.session_state.results_json.get("edges"):
+            if st.session_state.results_json and st.session_state.results_json.get("edges"):
                 max_abs = max(
                     abs(e.get("weight", 0)) for e in st.session_state.results_json["edges"]
                 )
 
-            # Controls
             thresh = st.slider(
-                "Edge threshold",
+                t("edge_threshold", lang),
                 0.0,
-                float(max_abs),
+                float(max_abs) if max_abs > 0 else 1.0,
                 float(st.session_state.explore_config_cache["threshold"]),
                 step=0.01,
             )
             abs_w = st.checkbox(
-                "Use absolute weights",
+                t("help_centrality_abs", lang),
                 value=st.session_state.explore_config_cache["use_absolute_weights"],
             )
             top_n = st.selectbox(
@@ -224,16 +246,12 @@ def main():
 
             from hygeia_graph.ui_state import can_enable_communities, can_enable_predictability
 
-            # Module selection
             r_posthoc = st.session_state.get("r_posthoc_json")
             has_pred = can_enable_predictability(r_posthoc)
             has_comm = can_enable_communities(r_posthoc)
 
             st.caption("Analysis Modules")
             st.checkbox("Strength (Abs)", value=True, disabled=True)
-            st.checkbox(
-                "Expected Influence", value=True, disabled=True, help="Always computed (Sprint B)"
-            )
             st.checkbox(
                 "Predictability", value=has_pred, disabled=not has_pred, help="Requires R posthoc"
             )
@@ -244,7 +262,6 @@ def main():
                 help="Requires R posthoc",
             )
 
-            # Run Button
             cfg_raw = {
                 "threshold": thresh,
                 "use_absolute_weights": abs_w,
@@ -252,10 +269,7 @@ def main():
                 "show_labels": labels,
                 "physics": phys,
             }
-            # Update cache var for persistence
             st.session_state.explore_config_cache = cfg_raw
-
-            # Normalize config
             explore_cfg = normalize_explore_config(cfg_raw, st.session_state.results_json)
             config_hash_val = explore_config_hash(explore_cfg, analysis_id or "unknown")
 
@@ -273,22 +287,41 @@ def main():
                         set_cached_outputs(
                             st.session_state, analysis_id, config_hash_val, artifacts
                         )
+                        st.success("Updated!")
                     else:
                         st.error("Failed to compute artifacts.")
-
+            
             if st.button("Clear derived cache"):
                 clear_analysis_cache(st.session_state, analysis_id or "unknown")
                 st.success("Cache cleared.")
 
+
     # ---------------------------------------------------------
     # MAIN AREA
     # ---------------------------------------------------------
+    
+    # Validation flags
+    valid_schema = st.session_state.schema_valid
+    valid_spec = st.session_state.model_spec_valid
+    run_success = (
+        st.session_state.results_json is not None
+        and st.session_state.results_json.get("status") == "success"
+    )
+    missing_ok = st.session_state.missing_rate == 0
+    LOCKED_MSG = "🔒 This page is locked. Please complete prior steps in order."
 
-    # Gating Check
-    LOCKED_MSG = "🔒 This page is locked. Please complete previous steps."
+    # Router
+    if nav_selection == "Introduction":
+        render_introduction_page(lang)
 
-    if nav_selection == "Data & Schema":
+    elif nav_selection == "Data & Schema":
         render_data_schema_page(lang)
+        
+    elif nav_selection == "Preprocessing":
+        # Accessible if Schema is ready
+        if not valid_schema:
+             st.info("💡 Please upload data and generate schema first.")
+        render_preprocessing_page(lang)
 
     elif nav_selection == "Model Settings":
         if not valid_schema:
@@ -299,7 +332,7 @@ def main():
     elif nav_selection == "Run MGM":
         if not (valid_schema and valid_spec and missing_ok):
             st.warning(LOCKED_MSG)
-            st.info("Checklist: Data Clean? Schema Valid? Model Spec Valid?")
+            st.info("Checklist: Is Schema valid? Is Model Spec built? No missing data?")
         else:
             render_run_mgm_page(lang)
 
@@ -310,29 +343,25 @@ def main():
             render_explore_page(lang, analysis_id or "unknown", config_hash_val)
 
     elif nav_selection == "Robustness":
-        # Check if R available (optional benefit)
         render_robustness_page(lang, analysis_id or "unknown", config_hash_val)
 
-    elif nav_selection == "Report & Export":
-        # Accessible if any artifact exists
-        if st.session_state.schema_obj or st.session_state.results_json:
-            render_report_page(lang, analysis_id or "unknown", config_hash_val)
-        else:
-            st.warning(LOCKED_MSG)
-
+    elif nav_selection == "Comparison":
+        st.header(t("nav_comparison", lang))
+        st.info("🚧 Module coming soon (Sprint B Agent M/K integration).")
+        
     elif nav_selection == "Simulation":
-        # Pass explore config hash if available
         render_simulation_page(
             lang, st.session_state.get("analysis_id"), st.session_state.get("config_hash")
         )
 
-    elif nav_selection == "Preprocessing":
-        render_preprocessing_page(lang)
-
+    elif nav_selection == "Report & Export":
+        if st.session_state.schema_obj or st.session_state.results_json:
+            render_report_page(lang, analysis_id or "unknown", config_hash_val)
+        else:
+            st.warning("No analyses to report yet.")
+    
     else:
-        # Placeholders
-        st.header(nav_map[nav_selection])
-        st.info("🚧 Coming soon in future sprints.")
+        st.error(f"Unknown page: {nav_selection}")
 
 
 if __name__ == "__main__":

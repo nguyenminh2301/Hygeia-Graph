@@ -10,7 +10,7 @@ from hygeia_graph.contracts import (
     validate_schema_json,
 )
 from hygeia_graph.data_processor import build_schema_json, infer_variables, load_csv, profile_df
-from hygeia_graph.i18n import t
+from hygeia_graph.locale import t
 from hygeia_graph.model_spec import build_model_spec, default_model_settings, sanitize_settings
 from hygeia_graph.network_metrics import (
     build_graph_from_results,
@@ -55,6 +55,35 @@ def init_session_state():
     for key, val in defaults.items():
         if key not in st.session_state:
             st.session_state[key] = val
+
+
+def render_introduction_page(lang: str):
+    """Render Introduction page."""
+    st.title(t("intro_title", lang))
+    st.markdown(f"#### {t('intro_subtitle', lang)}")
+    st.markdown(t("intro_description", lang))
+
+    st.divider()
+
+    c1, c2 = st.columns(2)
+    with c1:
+        st.subheader(t("core_features", lang))
+        st.markdown(f"- {t('feat_mgm', lang)}")
+        st.markdown(f"- {t('feat_temporal', lang)}")
+        st.markdown(f"- {t('feat_flow', lang)}")
+
+    with c2:
+        st.subheader(t("advanced_features", lang))
+        st.markdown(f"- {t('feat_lasso', lang)}")
+        st.markdown(f"- {t('feat_robustness', lang)}")
+        st.markdown(f"- {t('feat_comparison', lang)}")
+
+    st.divider()
+    st.subheader(t("start_guide", lang))
+    st.info(f"👉 **{t('step_1_title', lang)}**: {t('step_1_desc', lang)}")
+    st.markdown(f"**{t('step_2_title', lang)}**: {t('step_2_desc', lang)}")
+    st.markdown(f"**{t('step_3_title', lang)}**: {t('step_3_desc', lang)}")
+    st.markdown(f"**{t('step_4_title', lang)}**: {t('step_4_desc', lang)}")
 
 
 def render_data_schema_page(lang: str):
