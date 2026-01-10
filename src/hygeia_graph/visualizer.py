@@ -44,8 +44,8 @@ def get_node_style(node_attrs: dict[str, Any]) -> dict[str, Any]:
     level = node_attrs.get("level", 1)
     domain_group = node_attrs.get("domain_group")
 
-    # Color by mgm_type
-    color = NODE_COLORS.get(mgm_type, "#4A90D9")
+    # Color by mgm_type or community override
+    color = node_attrs.get("_community_color", NODE_COLORS.get(mgm_type, "#4A90D9"))
 
     # Build tooltip HTML
     tooltip_parts = [
@@ -57,6 +57,10 @@ def get_node_style(node_attrs: dict[str, Any]) -> dict[str, Any]:
     ]
     if domain_group:
         tooltip_parts.append(f"Group: {domain_group}")
+
+    # Add Predictability if present
+    if "_predictability_label" in node_attrs:
+        tooltip_parts.append(f"<b>Predictability</b>: {node_attrs['_predictability_label']}")
 
     tooltip = "<br>".join(tooltip_parts)
 

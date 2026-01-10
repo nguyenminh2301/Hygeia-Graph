@@ -7,6 +7,7 @@ suppressPackageStartupMessages({
   library(mgm)
   library(jsonlite)
   library(digest)
+  library(igraph)
 })
 
 # === Argument Parsing ===
@@ -17,6 +18,11 @@ data_path <- NULL
 schema_path <- NULL
 spec_path <- NULL
 out_path <- NULL
+posthoc_path <- NULL
+model_out_path <- NULL  # NEW: Path to save mgm fit RDS for intervention v2
+community_algo <- "spinglass_neg"
+spins <- NULL
+predictability <- FALSE
 quiet <- FALSE
 debug <- TRUE
 
@@ -33,6 +39,23 @@ while (i <= length(args)) {
     i <- i + 2
   } else if (args[i] == "--out" && i < length(args)) {
     out_path <- args[i + 1]
+    i <- i + 2
+  } else if (args[i] == "--posthoc_out" && i < length(args)) {
+    posthoc_path <- args[i + 1]
+    predictability <- TRUE  # Enable predictability by default if posthoc requested
+    i <- i + 2
+  } else if (args[i] == "--model_out" && i < length(args)) {
+    model_out_path <- args[i + 1]
+    i <- i + 2
+  } else if (args[i] == "--community_algo" && i < length(args)) {
+    community_algo <- args[i + 1]
+    i <- i + 2
+  } else if (args[i] == "--spins" && i < length(args)) {
+    spins <- as.integer(args[i + 1])
+    i <- i + 2
+  } else if (args[i] == "--predictability" && i < length(args)) {
+    val <- as.integer(args[i + 1])
+    predictability <- (val == 1)
     i <- i + 2
   } else if (args[i] == "--quiet") {
     quiet <- TRUE
@@ -354,6 +377,13 @@ tryCatch({
     warnings = TRUE
   )
   
+  # === Save Model RDS if requested (for intervention v2) ===
+  if (!is.null(model_out_path)) {
+    if (!quiet) cat(sprintf("Saving model RDS to %s...\n", model_out_path))
+    dir.create(dirname(model_out_path), recursive = TRUE, showWarnings = FALSE)
+    saveRDS(fit, model_out_path)
+  }
+  
   # === Extract Pairwise Parameters ===
   if (!quiet) cat("Extracting pairwise interactions...\n")
   
@@ -504,5 +534,199 @@ tryCatch({
 # === Write Results ===
 write_results(results, out_path)
 
-# Exit with success (we wrote results.json)
-quit(status = 0)
+# === R Posthoc Analysis (Optional) ===
+if (!is.null(posthoc_path)) {
+  if (!quiet) cat("Computing posthoc metrics...\n")
+  
+  posthoc_res <- list(
+    analysis_id = results$analysis_id,
+    computed_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
+    predictability = list(enabled = FALSE, by_node = list(), metric_by_node = list(), details = list()),
+    communities = list(enabled = FALSE, membership = list(), n_communities = 0, params = list()),
+    messages = list()
+  )
+  
+  # Helper to add posthoc message
+  add_ph_message <- function(ph, level, code, message, details = NULL) {
+    msg <- list(level = level, code = code, message = message)
+    if (!is.null(details)) msg$details <- details
+    ph$messages[[length(ph$messages) + 1]] <- msg
+    return(ph)
+  }
+  
+  # 1. Predictability
+  if (predictability) {
+    if (!quiet) cat("  Predictability (R2/CC/nCC)...\n")
+    tryCatch({
+      # errorCon="R2", errorCat=c("CC", "nCC")
+      # predict.mgm returns list with 'errors' and 'predicted'
+      pred_obj <- mgm::predict.mgm(fit, data = data_mat, errorCon = c("R2"), errorCat = c("CC", "nCC", "CCmarg"))
+      
+      # Extract errors dataframe
+      # Columns usually: Variable, Error, Type
+      errors_df <- pred_obj$errors
+      
+      by_node <- list()
+      metric_by_node <- list()
+      det_R2 <- list()
+      det_CC <- list()
+      det_nCC <- list()
+      det_CCmarg <- list()
+      
+      # Iterate over schema variables to map back to IDs
+      # The errors_df is indexed by column number 1..p matching fit call
+      
+      for (i in 1:nrow(errors_df)) {
+        # mgm usually returns a matrix/df where first col is numeric index?
+        # Actually predict.mgm result 'errors' is a matrix with rows = variables
+        # Row names might be present?
+        # Let's rely on index i matching variables[[i]]
+        
+        v_id <- schema$variables[[i]]$id
+        v_type <- schema$variables[[i]]$mgm_type
+        
+        # errors_df columns: R2, CC, nCC, CCmarg  (if requested)
+        # Note: predict.mgm returns a matrix. Columns are named.
+        row_vals <- errors_df[i, , drop = FALSE]
+        
+        val_primary <- NULL
+        metric_name <- NULL
+        
+        if (v_type %in% c("g", "p")) {
+          if ("R2" %in% colnames(row_vals)) {
+            val <- as.numeric(row_vals[1, "R2"])
+            det_R2[[v_id]] <- val
+            val_primary <- val
+            metric_name <- "R2"
+          }
+        } else if (v_type == "c") {
+          # Capture details
+          if ("CC" %in% colnames(row_vals)) det_CC[[v_id]] <- as.numeric(row_vals[1, "CC"])
+          if ("nCC" %in% colnames(row_vals)) det_nCC[[v_id]] <- as.numeric(row_vals[1, "nCC"])
+          if ("CCmarg" %in% colnames(row_vals)) det_CCmarg[[v_id]] <- as.numeric(row_vals[1, "CCmarg"])
+          
+          # Primary: nCC
+          if (!is.null(det_nCC[[v_id]])) {
+             val_primary <- det_nCC[[v_id]]
+             metric_name <- "nCC"
+             
+             # Warning if negative
+             if (val_primary < 0) {
+               posthoc_res <- add_ph_message(posthoc_res, "warning", "NEGATIVE_NCC", 
+                                             sprintf("Node %s has negative nCC", v_id))
+             }
+          }
+        }
+        
+        if (!is.null(val_primary)) {
+          by_node[[v_id]] <- val_primary
+          metric_by_node[[v_id]] <- metric_name
+        }
+      }
+      
+      posthoc_res$predictability$enabled <- TRUE
+      posthoc_res$predictability$by_node <- by_node
+      posthoc_res$predictability$metric_by_node <- metric_by_node
+      posthoc_res$predictability$details <- list(
+        R2 = det_R2, CC = det_CC, nCC = det_nCC, CCmarg = det_CCmarg
+      )
+      
+    }, error = function(e) {
+      posthoc_res <<- add_ph_message(posthoc_res, "error", "PREDICTABILITY_FAILED", conditionMessage(e))
+    })
+  }
+  
+  # 2. Communities
+  if (!quiet) cat("  Community detection...\n")
+  tryCatch({
+    # Build graph in igraph
+    # We reuse 'edges' list from results, but need a proper igraph object
+    # Or cleaner: using the computed 'edges' list is safer as it matches results exactly
+    
+    # Vertices
+    v_ids <- sapply(results$nodes, function(x) x$id)
+    g <- make_empty_graph(n = length(v_ids), directed = FALSE)
+    V(g)$name <- v_ids
+    
+    # Edges
+    # 'edges' contains source/target/weight/sign (computed above)
+    # We should use ALL edges that MGM found (results$edges)
+    
+    edge_src <- character()
+    edge_tgt <- character()
+    edge_w_signed <- numeric()
+    edge_w_abs <- numeric()
+    
+    for (e in results$edges) {
+       edge_src <- c(edge_src, e$source)
+       edge_tgt <- c(edge_tgt, e$target)
+       edge_w_signed <- c(edge_w_signed, e$weight)
+       edge_w_abs <- c(edge_w_abs, abs(e$weight))
+    }
+    
+    if (length(edge_src) > 0) {
+      g <- add_edges(g, rbind(edge_src, edge_tgt))
+      E(g)$weight <- edge_w_signed      # default weight attribute
+      E(g)$weight_signed <- edge_w_signed
+      E(g)$weight_abs <- edge_w_abs
+    }
+    
+    comm <- NULL
+    algo_used <- community_algo
+    
+    if (length(E(g)) == 0) {
+       # No edges -> each node is its own community
+       comm_membership <- 1:length(v_ids)
+       algo_used <- "none (no edges)"
+    } else {
+      if (community_algo == "spinglass_neg") {
+        # Spinglass with neg weights
+        s_val <- if (!is.null(spins)) spins else max(10, ceiling(sqrt(length(v_ids))))
+        
+        # Try spinglass
+        out <- tryCatch({
+          set.seed(if(!is.null(spec$random_seed)) spec$random_seed else 123)
+          cluster_spinglass(g, weights = E(g)$weight_signed, implementation = "neg", 
+                            spins = s_val, gamma = 1.0, gamma.minus = 1.0)
+        }, error = function(e) { e })
+        
+        if (inherits(out, "error")) {
+          posthoc_res <- add_ph_message(posthoc_res, "warning", "SPINGLASS_FAILED", 
+                                        paste("Spinglass failed, falling back to Walktrap:", conditionMessage(out)))
+          algo_used <- "walktrap (fallback)"
+          comm <- cluster_walktrap(g, weights = E(g)$weight_abs)
+        } else {
+          comm <- out
+        }
+        
+      } else {
+        # Default / Walktrap
+        algo_used <- "walktrap"
+        comm <- cluster_walktrap(g, weights = E(g)$weight_abs)
+      }
+      
+      comm_membership <- if (!is.null(comm)) membership(comm) else 1:length(v_ids)
+    }
+    
+    # Build membership map
+    mem_map <- list()
+    for (i in seq_along(v_ids)) {
+      mem_map[[v_ids[i]]] <- as.character(comm_membership[i])
+    }
+    
+    posthoc_res$communities$enabled <- TRUE
+    posthoc_res$communities$algorithm <- algo_used
+    posthoc_res$communities$membership <- mem_map
+    posthoc_res$communities$n_communities <- length(unique(comm_membership))
+    posthoc_res$communities$params <- list(spins = spins, seed = spec$random_seed)
+    
+  }, error = function(e) {
+    posthoc_res <<- add_ph_message(posthoc_res, "error", "COMMUNITIES_FAILED", conditionMessage(e))
+  })
+  
+  # Write r_posthoc.json
+  dir.create(dirname(posthoc_path), recursive = TRUE, showWarnings = FALSE)
+  write_json(posthoc_res, posthoc_path, pretty = TRUE, auto_unbox = TRUE, null = "null")
+  if (!quiet) cat(sprintf("WROTE: %s\n", posthoc_path))
+}
+

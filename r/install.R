@@ -8,7 +8,7 @@ cat("=== Hygeia-Graph R Package Installer ===\n\n")
 options(repos = c(CRAN = "https://cloud.r-project.org"))
 
 # Required packages
-required_packages <- c("mgm", "jsonlite", "digest", "uuid")
+required_packages <- c("mgm", "jsonlite", "digest", "uuid", "igraph", "bootnet", "glmnet", "qgraph", "svglite", "networktools")
 
 cat("Checking and installing required packages...\n")
 

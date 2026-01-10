@@ -4,3 +4,13 @@ pandas
 numpy
 networkx
 pyvis
+
+plotly
+
+# Multi-format file support
+openpyxl
+xlrd
+pyreadstat
+
+# Statistical tests
+scipy

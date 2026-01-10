@@ -180,6 +180,9 @@ def run_mgm_subprocess(
     workdir: Path | None = None,
     quiet: bool = True,
     debug: bool = False,
+    compute_r_posthoc: bool = False,
+    community_algo: str = "spinglass_neg",
+    spins: int | None = None,
 ) -> dict[str, Any]:
     """Run MGM analysis via R subprocess.
 
@@ -259,6 +262,16 @@ def run_mgm_subprocess(
         if debug:
             cmd.append("--debug")
 
+        # Posthoc arguments
+        posthoc_path = None
+        if compute_r_posthoc:
+            posthoc_path = workdir / "r_posthoc.json"
+            cmd.extend(["--posthoc_out", str(posthoc_path)])
+            cmd.extend(["--community_algo", community_algo])
+            if spins is not None:
+                cmd.extend(["--spins", str(spins)])
+            # predictability is enabled by default if posthoc_out is passed in R script logic
+
         # 6. Run subprocess
         start_time = time.time()
         timed_out = False
@@ -315,7 +328,7 @@ def run_mgm_subprocess(
             ) from e
 
         # 9. Return success
-        return {
+        payload = {
             "results": results_obj,
             "paths": {
                 "workdir": workdir,
@@ -323,8 +336,10 @@ def run_mgm_subprocess(
                 "data_csv": artifacts["paths"]["data"],
                 "schema_json": artifacts["paths"]["schema"],
                 "spec_json": artifacts["paths"]["spec"],
+                "r_posthoc_json": posthoc_path if posthoc_path and posthoc_path.exists() else None,
             },
             "sha256": artifacts["sha256"],
+            "r_posthoc": None,
             "process": {
                 "returncode": returncode,
                 "stdout": stdout,
@@ -333,6 +348,17 @@ def run_mgm_subprocess(
                 "seconds": elapsed,
             },
         }
+
+        # Load r_posthoc if available
+        if posthoc_path and posthoc_path.exists():
+            try:
+                with open(posthoc_path, encoding="utf-8") as f:
+                    payload["r_posthoc"] = json.load(f)
+            except json.JSONDecodeError:
+                # Warn but don't fail, main results are valid
+                pass
+
+        return payload
 
     finally:
         # Cleanup temp dir unless keeping

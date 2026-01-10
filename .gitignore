@@ -59,3 +59,23 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Temp files
+tmp/
+temp/
+*.tmp
+workdir_*/
+
+# R outputs
+*.rds
+*.RData
+*.Rhistory
+
+# Data files (uploaded by users - not to be committed)
+data/*.csv
+data/*.xlsx
+data/*.dta
+data/*.sav
+
+# Artifacts directory (local only)
+.artifacts/
