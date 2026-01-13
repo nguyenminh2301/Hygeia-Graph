@@ -163,6 +163,20 @@ tryCatch({
   results$input$spec_sha256 <- compute_file_hash(spec_path)
   results$input$data_sha256 <- compute_file_hash(data_path)
   
+  # === Build Nodes (Populate early to ensure valid JSON on failure) ===
+  results$nodes <- lapply(schema$variables, function(v) {
+    node <- list(
+      id = v$id,
+      column = v$column,
+      mgm_type = v$mgm_type,
+      measurement_level = v$measurement_level,
+      level = v$level
+    )
+    if (!is.null(v$label)) node$label <- v$label
+    if (!is.null(v$domain_group)) node$domain_group <- v$domain_group
+    node
+  })
+
   # === Load Data CSV ===
   if (!quiet) cat("Loading data...\n")
   
@@ -205,20 +219,7 @@ tryCatch({
   }
   
   if (has_missing) {
-    # Build nodes from schema for failed response
-    results$nodes <- lapply(schema$variables, function(v) {
-      node <- list(
-        id = v$id,
-        column = v$column,
-        mgm_type = v$mgm_type,
-        measurement_level = v$measurement_level,
-        level = v$level
-      )
-      if (!is.null(v$label)) node$label <- v$label
-      if (!is.null(v$domain_group)) node$domain_group <- v$domain_group
-      node
-    })
-    
+    # Nodes are already built above
     results <- add_message(
       results, "error", "MISSING_DATA_ABORT",
       "Missing values detected. Hygeia-Graph does not impute; please preprocess externally (e.g., MICE) and re-run."
@@ -481,23 +482,9 @@ tryCatch({
     }
   }
   
-  # === Build Nodes ===
-  nodes <- lapply(schema$variables, function(v) {
-    node <- list(
-      id = v$id,
-      column = v$column,
-      mgm_type = v$mgm_type,
-      measurement_level = v$measurement_level,
-      level = v$level
-    )
-    if (!is.null(v$label)) node$label <- v$label
-    if (!is.null(v$domain_group)) node$domain_group <- v$domain_group
-    node
-  })
-  
   # === Update Results ===
   results$status <- "success"
-  results$nodes <- nodes
+  # nodes already populated
   results$edges <- edges
   
   # Add optional metadata
