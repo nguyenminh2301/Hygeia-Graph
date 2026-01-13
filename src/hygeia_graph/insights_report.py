@@ -46,7 +46,8 @@ def build_report_payload(
     # 2. Key Numbers
     # Access edges from filtered list if possible, or results directly if cfg matches?
     # derived_metrics_json doesn't store edge count explicitly in root usually.
-    # We can infer from results_json["edges"] if no filter applied, but report should reflect Explore view?
+    # We can infer from results_json["edges"] if no filter applied, but report should reflect
+    # Explore view?
     # Actually results_json has ALL edges (filtered by regularization).
     # explore_cfg applies extra thresholding.
     threshold = cfg.get("threshold", 0.0)
@@ -70,7 +71,8 @@ def build_report_payload(
             if include_metric_label:
                 # Look up metric label from 'predictability_metric' dict if available
                 # But here we just pass the dict itself?
-                # For simplicity, if metric_dict is predictability, we need the metric map separately.
+                # For simplicity, if metric_dict is predictability, we need the metric map
+                # separately.
                 pass
             items.append(item)
 
@@ -204,13 +206,16 @@ def render_report_markdown(payload: Dict[str, Any], style: str = "paper") -> str
     lines.append("> [!IMPORTANT]")
     lines.append("> **Disclaimer (Research Tool Only)**")
     lines.append(
-        "> * This report is generated automatically by a software tool and does not constitute medical advice."
+        "> * This report is generated automatically by a software tool and does not constitute "
+        "medical advice."
     )
     lines.append(
-        "> * The associations identified (`edges`) represent partial correlations (dependencies) and do NOT imply causality."
+        "> * The associations identified (`edges`) represent partial correlations (dependencies) "
+        "and do NOT imply causality."
     )
     lines.append(
-        "> * Regularization (EBIC-GLASSO) shrinks small edges to zero; results depend on hyperparameters."
+        "> * Regularization (EBIC-GLASSO) shrinks small edges to zero; results depend on "
+        "hyperparameters."
     )
     lines.append("")
 
@@ -231,7 +236,8 @@ def render_report_markdown(payload: Dict[str, Any], style: str = "paper") -> str
     lines.append("### Node Strength (Absolute)")
     if ranks["top_strength_abs"]:
         lines.append(
-            f"The most central nodes (highest cumulative connection strength) were: **{clean_nodes(ranks['top_strength_abs'])}**."
+            "The most central nodes (highest cumulative connection strength) were: "
+            f"**{clean_nodes(ranks['top_strength_abs'])}**."
         )
     else:
         lines.append("No strength data available.")
@@ -240,7 +246,9 @@ def render_report_markdown(payload: Dict[str, Any], style: str = "paper") -> str
     lines.append("### Expected Influence")
     if ranks["top_expected_influence"]:
         lines.append(
-            f"Nodes with the strongest signed influence (positive or negative accumulated weights) were: **{clean_nodes(ranks['top_expected_influence'])}**."
+            "The nodes with highest Expected Influence (considering sign, i.e., strongest "
+            "positive or negative accumulated weights) were: "
+            f"**{clean_nodes(ranks['top_expected_influence'])}**."
         )
     else:
         lines.append("No expected influence data available.")
@@ -266,7 +274,8 @@ def render_report_markdown(payload: Dict[str, Any], style: str = "paper") -> str
         c = p["communities"]
         lines.append("## 4. Community Detection")
         lines.append(
-            f"Algorithm: `{c['algorithm']}` detected **{c['n_communities']} communities** (modules)."
+            f"Algorithm: `{c['algorithm']}` detected **{c['n_communities']} communities** "
+            "(modules)."
         )
         largest = ", ".join([f"{x['community']} (n={x['size']})" for x in c["largest"]])
         lines.append(f"Largest communities: {largest}.")
@@ -289,7 +298,8 @@ def render_report_markdown(payload: Dict[str, Any], style: str = "paper") -> str
             f"**Correlation Stability (CS-coefficient):** {', '.join(cs_str) if cs_str else 'N/A'}."
         )
         lines.append(
-            "*Interpretation: CS > 0.25 indicates moderate stability; CS > 0.5 indicates strong stability.*"
+            "*Interpretation: CS > 0.25 indicates moderate stability; CS > 0.5 indicates strong "
+            "stability.*"
         )
 
         # Edge CI
@@ -297,7 +307,9 @@ def render_report_markdown(payload: Dict[str, Any], style: str = "paper") -> str
         n_cross = edge_sum.get("n_edges_flagged_crossing_zero")
         if n_cross is not None:
             lines.append(
-                f"**Edge Accuracy:** Bootstrapping revealed that **{n_cross} edges** have 95% confidence intervals that cross zero, indicating uncertainty in their sign/presence."
+                f"**Edge Accuracy:** Bootstrapping revealed that **{n_cross} edges** have 95% "
+                "confidence intervals that cross zero, indicating uncertainty in their "
+                "sign/presence."
             )
             if n_cross > 0 and edge_sum.get("example_edges"):
                 ex = edge_sum["example_edges"][0]
@@ -316,7 +328,8 @@ def render_report_markdown(payload: Dict[str, Any], style: str = "paper") -> str
     lines.append("## 📝 Suggested Paragraph (Results Section)")
     lines.append("```text")
     lines.append(
-        "We estimated a Mixed Graphical Model (MGM) using the Hygeia-Graph tool (based on mgm R package)."
+        "We estimated a Mixed Graphical Model (MGM) using the Hygeia-Graph tool (based on mgm "
+        "R package)."
     )
     lines.append("Model selection was performed using EBIC (tuning parameter=0.25).")
 
@@ -325,11 +338,13 @@ def render_report_markdown(payload: Dict[str, Any], style: str = "paper") -> str
 
     if p["inputs_present"]["bootnet"]:
         lines.append(
-            "Stability analysis using nonparametric and case-dropping bootstrapping (n=200) was conducted."
+            "Stability analysis using nonparametric and case-dropping bootstrapping (n=200) "
+            "was conducted."
         )
 
     lines.append(
-        "Associations reported here are exploratory and should be interpreted as partial correlations."
+        "Associations reported here are exploratory and should be interpreted as partial "
+        "correlations."
     )
     lines.append("```")
 

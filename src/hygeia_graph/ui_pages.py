@@ -9,7 +9,7 @@ from hygeia_graph.contracts import (
     validate_model_spec_json,
     validate_schema_json,
 )
-from hygeia_graph.data_processor import build_schema_json, infer_variables, load_csv, profile_df
+from hygeia_graph.data_processor import build_schema_json, infer_variables, profile_df
 from hygeia_graph.locale import t
 from hygeia_graph.model_spec import build_model_spec, default_model_settings, sanitize_settings
 from hygeia_graph.network_metrics import (
@@ -91,19 +91,19 @@ def render_data_schema_page(lang: str):
     st.header(t("nav_data_upload", lang))
 
     # Data format guidance
-    from hygeia_graph.ui_guidance import DATA_FORMAT_SHORT, DATA_FORMAT_DETAILS
-    from hygeia_graph.file_loader import (
-        load_file,
-        convert_to_standard_format,
-        get_supported_extensions,
-        SUPPORTED_FORMATS_DISPLAY,
-        FileLoadError,
-    )
     from hygeia_graph.example_datasets import (
         EXAMPLES,
-        load_example_df,
         get_example_meta,
+        load_example_df,
     )
+    from hygeia_graph.file_loader import (
+        SUPPORTED_FORMATS_DISPLAY,
+        FileLoadError,
+        convert_to_standard_format,
+        get_supported_extensions,
+        load_file,
+    )
+    from hygeia_graph.ui_guidance import DATA_FORMAT_DETAILS, DATA_FORMAT_SHORT
 
     st.markdown(DATA_FORMAT_SHORT)
     st.markdown(SUPPORTED_FORMATS_DISPLAY)
@@ -155,7 +155,9 @@ def render_data_schema_page(lang: str):
                         if key in st.session_state:
                             del st.session_state[key]
 
-                    st.success(f"✅ Loaded **{meta['title']}**: {len(df)} rows × {len(df.columns)} columns")
+                    st.success(
+                        f"✅ Loaded **{meta['title']}**: {len(df)} rows × {len(df.columns)} columns"
+                    )
                     st.rerun()
                 except Exception as e:
                     st.error(f"Failed to load example: {e}")
@@ -297,8 +299,8 @@ def render_data_schema_page(lang: str):
 
     # Schema status (no JSON preview)
     if st.session_state.schema_valid and st.session_state.schema_obj:
+        from hygeia_graph.ui_copy import STATUS_SCHEMA_READY
         from hygeia_graph.ui_flow import get_schema_summary
-        from hygeia_graph.ui_copy import STATUS_SCHEMA_READY, NEXT_LABELS
 
         summary = get_schema_summary(st.session_state.schema_obj)
         st.success(f"{STATUS_SCHEMA_READY} ({summary})")
@@ -506,7 +508,8 @@ def render_run_mgm_page(lang: str):
                 spins_val = int(s_in) if s_in > 0 else None
 
             st.info(
-                "ℹ️ Predictability uses R2 (Gaussian/Poisson) or nCC (Categorical). Communities computed via igraph."
+                "ℹ️ Predictability uses R2 (Gaussian/Poisson) or nCC (Categorical). "
+                "Communities computed via igraph."
             )
 
     # Run
@@ -929,9 +932,10 @@ def render_simulation_page(lang: str, analysis_id: str, config_hash: str):
     st.header("🔬 Intervention Simulation (Experimental)")
 
     st.warning(
-        "⚠️ **Disclaimer:** This is an **associational propagation** simulation based on the estimated network. "
-        "It is **NOT causal inference** and should not be interpreted as assessing the effect of a randomized intervention. "
-        "Intended for hypothesis generation only."
+        "⚠️ **Disclaimer:** This is an **associational propagation** simulation based on the "
+        "estimated network. It is **NOT causal inference** and should not be interpreted as "
+        "assessing the effect of a randomized intervention. Intended for hypothesis generation "
+        "only."
     )
 
     if not analysis_id:
@@ -984,7 +988,8 @@ def render_simulation_page(lang: str, analysis_id: str, config_hash: str):
             delta = st.number_input("Delta (Raw)", value=1.0)
             delta_val = float(delta)
             st.caption(
-                "⚠️ Raw units assumes edge weights are compatible (standardized edges require standardized inputs)."
+                "⚠️ Raw units assumes edge weights are compatible (standardized edges require "
+                "standardized inputs)."
             )
 
         # Advanced
@@ -1129,15 +1134,15 @@ def render_preprocessing_page(lang: str):
         return
 
     # Imports locally to avoid top-level cost if unused
-    from hygeia_graph.preprocess_interface import PreprocessError, run_lasso_select_subprocess
-    from hygeia_graph.preprocess_utils import compute_dataset_hash, lasso_settings_hash
     from hygeia_graph.heavy_guardrails import (
-        normalize_lasso_settings,
-        render_messages_to_markdown,
-        LASSO_SAFE_MAX_FEATURES,
         LASSO_HARD_MAX_FEATURES,
         LASSO_HARD_MAX_NFOLDS,
+        LASSO_SAFE_MAX_FEATURES,
+        normalize_lasso_settings,
+        render_messages_to_markdown,
     )
+    from hygeia_graph.preprocess_interface import PreprocessError, run_lasso_select_subprocess
+    from hygeia_graph.preprocess_utils import compute_dataset_hash, lasso_settings_hash
 
     # 1. Settings
     df = st.session_state.df
@@ -1273,14 +1278,18 @@ def render_preprocessing_page(lang: str):
                 st.divider()
                 st.write("### Apply to Analysis")
                 st.warning(
-                    "⚠️ This will overwrite your current dataset and reset any existing analysis (Schema, Model, Results)."
+                    "⚠️ This will overwrite your current dataset and reset any existing analysis "
+                    "(Schema, Model, Results)."
                 )
 
                 # Option to keep target in network
                 keep_target = st.checkbox(
                     "Include Target variable in MGM network?",
                     value=False,
-                    help="If checked, the target column is kept in the main analysis. If unchecked, it is used only for selection and removed.",
+                    help=(
+                        "If checked, the target column is kept in the main analysis. If unchecked, "
+                        "it is used only for selection and removed."
+                    ),
                 )
 
                 if st.button("🚀 Use this Filtered Dataset"):
@@ -1311,7 +1320,8 @@ def render_preprocessing_page(lang: str):
                     st.session_state.get("report_cache", {}).clear()
 
                     st.success(
-                        f"Dataset updated! New shape: {new_df.shape}. Please go to 'Data & Schema' to rebuild schema."
+                        f"Dataset updated! New shape: {new_df.shape}. Please go to 'Data & Schema' "
+                        "to rebuild schema."
                     )
                     st.session_state["_flash_msg"] = (
                         "Dataset filtered via LASSO. Please rebuild schema."
@@ -1416,7 +1426,8 @@ def render_preprocessing_page(lang: str):
     if st.button("📄 Generate Insights Report", type="primary"):
         if not der:
             st.warning(
-                "Please visit the Explore page to compute derived metrics first (or Run selected analyses)."
+                "Please visit the Explore page to compute derived metrics first "
+                "(or Run selected analyses)."
             )
         else:
             with st.spinner("Writing report..."):
@@ -1546,17 +1557,11 @@ def render_report_page(lang: str, analysis_id: str, config_hash: str):
     st.subheader("📈 Dataset Descriptive Statistics")
 
     from hygeia_graph.descriptives import (
-        classify_variables,
-        compute_missing_summary,
-        build_variable_summary_table,
         build_categorical_levels_table,
         build_descriptives_payload,
-    )
-    from hygeia_graph.descriptives_cache import (
-        compute_dataset_hash,
-        descriptives_settings_hash,
-        get_cached_descriptives,
-        set_cached_descriptives,
+        build_variable_summary_table,
+        classify_variables,
+        compute_missing_summary,
     )
 
     df = st.session_state.get("df")
@@ -1604,7 +1609,10 @@ def render_report_page(lang: str, analysis_id: str, config_hash: str):
             cols[1].metric("Columns", payload["n_cols"])
             cols[2].metric("Missing Rate", f"{payload['missing_rate']:.1%}")
             cols[3].metric("Continuous", payload["variables"]["n_continuous"])
-            cols[4].metric("Categorical", payload["variables"]["n_nominal"] + payload["variables"]["n_ordinal"])
+            cols[4].metric(
+                "Categorical",
+                payload["variables"]["n_nominal"] + payload["variables"]["n_ordinal"]
+            )
 
             # Table preview
             st.dataframe(var_summary_df.head(20), use_container_width=True)
@@ -1680,10 +1688,10 @@ def render_robustness_page(lang: str, analysis_id: str, config_hash: str):
     )
 
     from hygeia_graph.heavy_guardrails import (
+        BOOTNET_HARD_MAX_BOOTS,
+        BOOTNET_SAFE_MAX_BOOTS,
         normalize_bootnet_settings,
         render_messages_to_markdown,
-        BOOTNET_SAFE_MAX_BOOTS,
-        BOOTNET_HARD_MAX_BOOTS,
     )
 
     with st.expander("⚙️ Bootnet Settings", expanded=True):

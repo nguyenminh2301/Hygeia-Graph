@@ -1,9 +1,8 @@
 """Unit tests for UI Navigation and Localization."""
 
-import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
-from hygeia_graph.locale import t, TRANSLATIONS
+from hygeia_graph.locale import TRANSLATIONS, t
 
 
 class TestLocalization:
@@ -44,7 +43,7 @@ class TestNavigationLogic:
         """
         Verify Preprocessing is in the advanced list or correctly ordered in our map.
         Since we can't easily test visual order in Streamlit via unit tests,
-        we verify the intended order list definition from app.py logic 
+        we verify the intended order list definition from app.py logic
         (recreated here as expectation).
         """
         # Expected order from app.py
@@ -60,14 +59,14 @@ class TestNavigationLogic:
             "Simulation",
             "Report & Export",
         ]
-        
+
         # Preprocessing should be after Data & Schema
         idx_data = nav_order.index("Data & Schema")
         idx_pre = nav_order.index("Preprocessing")
         assert idx_pre > idx_data
-        
+
         # Preprocessing should be before Model Settings (as per our branching logic)
-        # Actually in app.py we put it before Model Settings? 
+        # Actually in app.py we put it before Model Settings?
         # Let's check what I wrote in app.py...
         # "nav_order = [..., 'Preprocessing', 'Model Settings', ...]"
         idx_model = nav_order.index("Model Settings")
@@ -77,12 +76,12 @@ class TestNavigationLogic:
         """Verify navigation grouping structure."""
         # Just ensuring the keys we use in app.py exist in locale
         from hygeia_graph.locale import TRANSLATIONS
-        
+
         expected_keys = [
-            "nav_intro", "nav_data_upload", "model_settings", "run_mgm", 
-            "interactive_network", "nav_publication", 
+            "nav_intro", "nav_data_upload", "model_settings", "run_mgm",
+            "interactive_network", "nav_publication",
             "nav_preprocess", "nav_robustness", "nav_comparison", "nav_simulation"
         ]
-        
+
         for k in expected_keys:
             assert k in TRANSLATIONS

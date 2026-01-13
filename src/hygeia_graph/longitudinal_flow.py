@@ -8,7 +8,6 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import pandas as pd
 
-
 # Default suffix pairs to detect
 DEFAULT_SUFFIX_PAIRS = [("_T1", "_T2"), ("_t1", "_t2"), ("T1", "T2"), ("_pre", "_post")]
 

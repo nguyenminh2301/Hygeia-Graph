@@ -37,7 +37,7 @@ def merge_r_posthoc_into_derived(
 
         # Add details if useful for debugging or advanced view?
         # Requirement: "Add node_metrics.predictability" & "predictability_metric_by_node"
-        # We can store full predictability object under 'r_predictability' for completeness if desirable,
+        # We can store full predictability object under 'r_predictability' for completeness,
         # but let's stick to the strict requirement first to keep schema clean.
 
     # 2. Communities

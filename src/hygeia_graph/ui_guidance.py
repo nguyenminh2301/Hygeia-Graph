@@ -3,7 +3,7 @@
 Provides consistent UX copy and workflow navigation for Hygeia-Graph.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 # ============================================================================
 # DATA FORMAT GUIDANCE
@@ -33,9 +33,11 @@ DATA_FORMAT_DETAILS = """
 | Poisson | `p` | Count data (non-negative integers) | Hospital days, symptom count |
 
 **Common Pitfalls:**
-1. **Missing values:** MGM uses `warn_and_abort` policy — no imputation. Use listwise deletion or impute beforehand.
+1. **Missing values:** MGM uses `warn_and_abort` policy — no imputation.
+   Use listwise deletion or impute beforehand.
 2. **Rare categories:** Categories with <8 samples can cause unstable estimates or glmnet warnings.
-3. **High dimensionality (p >> n):** Consider using LASSO feature selection first via Preprocessing page.
+3. **High dimensionality (p >> n):** Consider using LASSO feature selection first
+   via Preprocessing page.
 4. **Non-UTF8 encoding:** May cause parsing errors — convert to UTF-8.
 
 **Dataset Size Recommendations:**

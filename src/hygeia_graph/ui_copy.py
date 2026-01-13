@@ -12,7 +12,8 @@ MGM_TYPES_EXPLANATION = """
 
 # Privacy notice
 PRIVACY_NOTICE = """
-🔒 **Privacy:** All temporary files are deleted immediately after each run. Nothing is stored server-side.
+🔒 **Privacy:** All temporary files are deleted immediately after each run.
+Nothing is stored server-side.
 """
 
 # Clear-all confirmation

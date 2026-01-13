@@ -99,7 +99,8 @@ def normalize_bootnet_settings(
             _make_message(
                 "warning",
                 "BOOTNET_HARD_CLAMPED",
-                f"Values clamped to hard limits (boots≤{BOOTNET_HARD_MAX_BOOTS}, cores≤{BOOTNET_HARD_MAX_CORES}).",
+                    f"Values clamped to hard limits (boots≤{BOOTNET_HARD_MAX_BOOTS}, "
+                    f"cores≤{BOOTNET_HARD_MAX_CORES}).",
             )
         )
 
@@ -118,7 +119,8 @@ def normalize_bootnet_settings(
                 _make_message(
                     "warning",
                     "BOOTNET_CLAMPED",
-                    f"Clamped to safe limits (boots≤{BOOTNET_SAFE_MAX_BOOTS}, cores≤{BOOTNET_SAFE_MAX_CORES}). "
+                    f"Clamped to safe limits (boots≤{BOOTNET_SAFE_MAX_BOOTS}, "
+                    f"cores≤{BOOTNET_SAFE_MAX_CORES}). "
                     "Enable Advanced unlock for larger runs.",
                     {
                         "original_np": orig_np,
@@ -194,7 +196,8 @@ def normalize_nct_settings(
             _make_message(
                 "warning",
                 "NCT_HARD_CLAMPED",
-                f"Values clamped to hard limits (perms≤{NCT_HARD_MAX_PERMS}, cores≤{NCT_HARD_MAX_CORES}).",
+                f"Values clamped to hard limits (perms≤{NCT_HARD_MAX_PERMS}, "
+                f"cores≤{NCT_HARD_MAX_CORES}).",
             )
         )
 
@@ -211,7 +214,8 @@ def normalize_nct_settings(
                 _make_message(
                     "warning",
                     "NCT_CLAMPED",
-                    f"Clamped to safe limits (perms≤{NCT_SAFE_MAX_PERMS}). Enable Advanced unlock for larger runs.",
+                    f"Clamped to safe limits (perms≤{NCT_SAFE_MAX_PERMS}). "
+                    "Enable Advanced unlock for larger runs.",
                 )
             )
 
@@ -223,7 +227,8 @@ def normalize_nct_settings(
                 _make_message(
                     "warning",
                     "NCT_EDGE_TESTS_DISABLED",
-                    f"Edge tests disabled (permutations>{NCT_EDGE_TESTS_MAX_PERMS} is too expensive).",
+                    f"Edge tests disabled (permutations>{NCT_EDGE_TESTS_MAX_PERMS} "
+                    "is too expensive).",
                 )
             )
         else:
@@ -243,7 +248,7 @@ def normalize_nct_settings(
             _make_message(
                 "warning",
                 "NCT_MODE_INVALID",
-                f"Invalid mode. Reset to 'auto'.",
+                "Invalid mode. Reset to 'auto'.",
             )
         )
 
@@ -297,7 +302,8 @@ def normalize_lasso_settings(
             _make_message(
                 "warning",
                 "LASSO_HARD_CLAMPED",
-                f"Values clamped to hard limits (nfolds≤{LASSO_HARD_MAX_NFOLDS}, max_features≤{LASSO_HARD_MAX_FEATURES}).",
+                f"Values clamped to hard limits (nfolds≤{LASSO_HARD_MAX_NFOLDS}, "
+                f"max_features≤{LASSO_HARD_MAX_FEATURES}).",
             )
         )
 
@@ -314,7 +320,8 @@ def normalize_lasso_settings(
                 _make_message(
                     "warning",
                     "LASSO_CLAMPED",
-                    f"Clamped to safe limits (nfolds≤{LASSO_SAFE_MAX_NFOLDS}, max_features≤{LASSO_SAFE_MAX_FEATURES}). "
+                    f"Clamped to safe limits (nfolds≤{LASSO_SAFE_MAX_NFOLDS}, "
+                    f"max_features≤{LASSO_SAFE_MAX_FEATURES}). "
                     "Enable Advanced unlock for larger runs.",
                 )
             )

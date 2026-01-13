@@ -433,7 +433,9 @@ def build_descriptives_payload(
         Payload dict.
     """
     # Count variable types
-    n_continuous = len(variable_summary_df[variable_summary_df["measurement_level"] == "continuous"])
+    n_continuous = len(
+        variable_summary_df[variable_summary_df["measurement_level"] == "continuous"]
+    )
     n_count = len(variable_summary_df[variable_summary_df["measurement_level"] == "count"])
     n_nominal = len(variable_summary_df[variable_summary_df["measurement_level"] == "nominal"])
     n_ordinal = len(variable_summary_df[variable_summary_df["measurement_level"] == "ordinal"])
