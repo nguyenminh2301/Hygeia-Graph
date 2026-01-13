@@ -24,15 +24,36 @@ OPTIONAL_PACKAGES = [
 ]
 
 
+
+# Explicit overrides for R path
+CUSTOM_R_PATHS = [
+    r"C:\Program Files\R\R-4.3.3\bin\x64\Rscript.exe",
+    r"C:\Program Files\R\R-4.3.3\bin\Rscript.exe",
+]
+
+def get_rscript_path() -> Optional[str]:
+    """Find Rscript executable path."""
+    # 1. Check PATH
+    path = shutil.which("Rscript")
+    if path:
+        return path
+
+    # 2. Check Custom Paths
+    for p in CUSTOM_R_PATHS:
+        if Path(p).exists():
+            return p
+
+    return None
+
 def check_rscript() -> Dict[str, Any]:
-    """Check if Rscript is available in PATH."""
-    rscript_path = shutil.which("Rscript")
+    """Check if Rscript is available."""
+    rscript_path = get_rscript_path()
 
     if rscript_path:
         # Get version
         try:
             result = subprocess.run(
-                ["Rscript", "--version"],
+                [rscript_path, "--version"],
                 capture_output=True,
                 text=True,
                 timeout=10,
@@ -56,7 +77,7 @@ def check_rscript() -> Dict[str, Any]:
             "ok": False,
             "path": None,
             "version": None,
-            "message": "Rscript not found in PATH. Install R to enable network analysis.",
+            "message": "Rscript not found in PATH or standard locations. Install R to enable network analysis.",
         }
 
 
@@ -80,8 +101,9 @@ def check_r_packages(packages: Optional[List[str]] = None, timeout_sec: int = 20
 
     for pkg in packages:
         try:
+
             cmd = [
-                "Rscript",
+                check_rscript()["path"], # Assuming check_rscript() found it if we are hereof
                 "-e",
                 f"quit(status=ifelse(requireNamespace('{pkg}',quietly=TRUE),0,1))",
             ]
@@ -134,7 +156,7 @@ def run_r_install(keep_log: bool = True, timeout_sec: int = 1200) -> Dict[str, A
 
     try:
         result = subprocess.run(
-            ["Rscript", str(install_script)],
+            [r_check["path"], str(install_script)],
             capture_output=True,
             text=True,
             timeout=timeout_sec,

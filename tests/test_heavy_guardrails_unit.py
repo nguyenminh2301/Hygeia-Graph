@@ -1,23 +1,22 @@
 """Unit tests for heavy module guardrails."""
 
-import pytest
 
 from hygeia_graph.heavy_guardrails import (
-    clamp_int,
-    clamp_float,
-    normalize_bootnet_settings,
-    normalize_nct_settings,
-    normalize_lasso_settings,
-    should_require_advanced_unlock,
-    render_messages_to_markdown,
-    BOOTNET_SAFE_MAX_BOOTS,
     BOOTNET_HARD_MAX_BOOTS,
-    NCT_SAFE_MAX_PERMS,
-    NCT_HARD_MAX_PERMS,
-    LASSO_SAFE_MAX_NFOLDS,
-    LASSO_SAFE_MAX_FEATURES,
-    LASSO_HARD_MAX_NFOLDS,
+    BOOTNET_SAFE_MAX_BOOTS,
     LASSO_HARD_MAX_FEATURES,
+    LASSO_HARD_MAX_NFOLDS,
+    LASSO_SAFE_MAX_FEATURES,
+    LASSO_SAFE_MAX_NFOLDS,
+    NCT_HARD_MAX_PERMS,
+    NCT_SAFE_MAX_PERMS,
+    clamp_float,
+    clamp_int,
+    normalize_bootnet_settings,
+    normalize_lasso_settings,
+    normalize_nct_settings,
+    render_messages_to_markdown,
+    should_require_advanced_unlock,
 )
 
 

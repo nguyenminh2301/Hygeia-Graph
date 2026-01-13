@@ -10,6 +10,9 @@ suppressPackageStartupMessages({
   library(igraph)
 })
 
+# Helper for null coalescing (in case R version < 4.4, though we mandated 4.3)
+`%||%` <- function(a, b) if (!is.null(a)) a else b
+
 # === Argument Parsing ===
 args <- commandArgs(trailingOnly = TRUE)
 
@@ -163,6 +166,21 @@ tryCatch({
   results$input$spec_sha256 <- compute_file_hash(spec_path)
   results$input$data_sha256 <- compute_file_hash(data_path)
   
+  # === Build Nodes from Schema (Early) ===
+  # Ensure nodes are populated even if analysis fails later
+  results$nodes <- lapply(schema$variables, function(v) {
+    node <- list(
+      id = v$id,
+      column = v$column,
+      mgm_type = v$mgm_type,
+      measurement_level = v$measurement_level,
+      level = v$level
+    )
+    if (!is.null(v$label)) node$label <- v$label
+    if (!is.null(v$domain_group)) node$domain_group <- v$domain_group
+    node
+  })
+  
   # === Load Data CSV ===
   if (!quiet) cat("Loading data...\n")
   
@@ -205,19 +223,8 @@ tryCatch({
   }
   
   if (has_missing) {
-    # Build nodes from schema for failed response
-    results$nodes <- lapply(schema$variables, function(v) {
-      node <- list(
-        id = v$id,
-        column = v$column,
-        mgm_type = v$mgm_type,
-        measurement_level = v$measurement_level,
-        level = v$level
-      )
-      if (!is.null(v$label)) node$label <- v$label
-      if (!is.null(v$domain_group)) node$domain_group <- v$domain_group
-      node
-    })
+    # Nodes already populated
+
     
     results <- add_message(
       results, "error", "MISSING_DATA_ABORT",
@@ -333,6 +340,40 @@ tryCatch({
     quit(status = 0)
   }
   
+  # === Pre-validation: Check for Sparse Categories ===
+  # mgm requires at least 2 observations per category for cv/model stability.
+  # We check this explicitly to give better error messages than "NA".
+  
+  if (!quiet) cat("Validating category counts...\n")
+  
+  for (i in seq_along(schema$variables)) {
+    if (type_vec[i] == "c") {
+      v <- schema$variables[[i]]
+      col_id <- v$id
+      
+      # table() ignores NAs by default, but we should have no NAs here
+      counts <- table(encoded_df[[col_id]])
+      min_count <- min(counts)
+      
+      if (min_count < 2) {
+        # Find which category is the culprit
+        bad_cats <- names(counts)[counts < 2]
+        formatted_cats <- paste(bad_cats, collapse = ", ")
+        
+        err_msg <- sprintf(
+          "Variable '%s' (Column: '%s') has rare categories with only 1 observation: [%s]. MGM requires at least 2.",
+          v$label %||% v$id,
+          v$column,
+          formatted_cats
+        )
+        
+        results <- add_message(results, "error", "SPARSE_CATEGORY", err_msg)
+        write_results(results, out_path)
+        quit(status = 0)
+      }
+    }
+  }
+
   # === Extract MGM Parameters from Spec ===
   if (!quiet) cat("Configuring MGM parameters...\n")
   
@@ -388,6 +429,7 @@ tryCatch({
   if (!quiet) cat("Extracting pairwise interactions...\n")
   
   edges <- list()
+  edge_mapping <- spec$edge_mapping  # Move outside loop
   
   if (!is.null(fit$interactions$indicator) && length(fit$interactions$indicator) > 0) {
     indicator <- fit$interactions$indicator[[1]]  # k=2 interactions
@@ -418,7 +460,6 @@ tryCatch({
         )
         
         # === Edge Mapping ===
-        edge_mapping <- spec$edge_mapping
         aggregator <- edge_mapping$aggregator
         sign_strategy <- edge_mapping$sign_strategy
         zero_tol <- edge_mapping$zero_tolerance
@@ -481,23 +522,10 @@ tryCatch({
     }
   }
   
-  # === Build Nodes ===
-  nodes <- lapply(schema$variables, function(v) {
-    node <- list(
-      id = v$id,
-      column = v$column,
-      mgm_type = v$mgm_type,
-      measurement_level = v$measurement_level,
-      level = v$level
-    )
-    if (!is.null(v$label)) node$label <- v$label
-    if (!is.null(v$domain_group)) node$domain_group <- v$domain_group
-    node
-  })
-  
   # === Update Results ===
   results$status <- "success"
-  results$nodes <- nodes
+  # results$nodes already populated from schema
+
   results$edges <- edges
   
   # Add optional metadata

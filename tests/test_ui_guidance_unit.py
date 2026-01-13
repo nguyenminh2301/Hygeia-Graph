@@ -1,18 +1,17 @@
 """Unit tests for UI guidance module."""
 
-import pytest
 
 from hygeia_graph.ui_guidance import (
-    DATA_FORMAT_SHORT,
     DATA_FORMAT_DETAILS,
-    MODEL_SETTINGS_HINTS,
+    DATA_FORMAT_SHORT,
     EXPLORE_HINTS,
+    MODEL_SETTINGS_HINTS,
     PAGE_ORDER,
+    can_proceed_to_next,
+    get_hint,
     get_next_page,
     get_prev_page,
-    can_proceed_to_next,
     get_workflow_status,
-    get_hint,
 )
 
 

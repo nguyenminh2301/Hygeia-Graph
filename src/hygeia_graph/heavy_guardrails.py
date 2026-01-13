@@ -243,7 +243,7 @@ def normalize_nct_settings(
             _make_message(
                 "warning",
                 "NCT_MODE_INVALID",
-                f"Invalid mode. Reset to 'auto'.",
+                "Invalid mode. Reset to 'auto'.",
             )
         )
 

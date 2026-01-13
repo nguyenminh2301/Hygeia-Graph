@@ -5,14 +5,14 @@ import pandas as pd
 import pytest
 
 from hygeia_graph.descriptives import (
+    build_categorical_levels_table,
+    build_descriptives_payload,
+    build_variable_summary_table,
     classify_variables,
     compute_missing_summary,
     normality_test,
-    summarize_continuous,
     summarize_categorical,
-    build_variable_summary_table,
-    build_categorical_levels_table,
-    build_descriptives_payload,
+    summarize_continuous,
 )
 
 

@@ -1,7 +1,8 @@
 """Unit tests for intervention v2 module."""
 
-import pytest
 from unittest.mock import patch
+
+import pytest
 
 from hygeia_graph.intervention_v2_interface import (
     InterventionV2Error,

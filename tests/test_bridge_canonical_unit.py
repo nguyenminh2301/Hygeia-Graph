@@ -1,7 +1,7 @@
 """Unit tests for bridge canonical metrics."""
 
+
 import pytest
-from unittest.mock import patch, MagicMock
 
 from hygeia_graph.bridge_merge import merge_bridge_into_derived
 

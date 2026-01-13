@@ -193,10 +193,24 @@ def infer_variables(df: pd.DataFrame) -> list[dict[str, Any]]:
                 all_non_negative = (non_null >= 0).all()
 
                 if all_non_negative:
-                    # High uniqueness → count data
-                    # Use stricter threshold: need both high ratio AND many unique values
+                    min_val = int(non_null.min())
+                    max_val = int(non_null.max())
+
+                    # Count data heuristics:
+                    # 1. High uniqueness (many unique values relative to rows)
+                    # 2. Low-valued counts (0-30 range typical for count data)
+                    # 3. Starts at 0 (typical for counts)
                     uniqueness_ratio = n_unique / n_rows if n_rows > 0 else 0
-                    if n_unique > 20 and uniqueness_ratio >= 0.10:
+
+                    # Classify as Poisson if:
+                    # - Starts at 0 or low AND upper bound is reasonable for counts (<= 30)
+                    # - OR high uniqueness
+                    is_count_data = (
+                        (min_val == 0 and max_val <= 30 and n_unique >= 5)
+                        or (n_unique > 20 and uniqueness_ratio >= 0.10)
+                    )
+
+                    if is_count_data:
                         mgm_type = "p"
                         measurement_level = "count"
                         level = 1

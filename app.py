@@ -8,13 +8,13 @@ from hygeia_graph.ui_pages import (
     init_session_state,
     render_data_schema_page,
     render_explore_page,
+    render_introduction_page,
     render_model_settings_page,
     render_preprocessing_page,
     render_report_page,
     render_robustness_page,
     render_run_mgm_page,
     render_simulation_page,
-    render_introduction_page,
 )
 from hygeia_graph.ui_state import (
     clear_analysis_cache,
@@ -82,8 +82,8 @@ def main():
             status = "Success" if s_val == "success" else "Failed"
         st.caption(f"Status: {status}")
 
-        from hygeia_graph.ui_flow import clear_all_state
         from hygeia_graph.ui_copy import EPHEMERAL_NOTICE
+        from hygeia_graph.ui_flow import clear_all_state
 
         st.caption(EPHEMERAL_NOTICE)
 
@@ -146,7 +146,7 @@ def main():
 
         # B) Navigation
         st.subheader("Navigation")
-        
+
         # Define Page Groups
         nav_options_core = {
             "Introduction": t("nav_intro", lang),
@@ -156,9 +156,10 @@ def main():
             "Explore": t("interactive_network", lang),
             "Report & Export": t("nav_publication", lang),
         }
-        
+
         nav_options_advanced = {
             "Preprocessing": t("nav_preprocess", lang),
+            "Temporal Networks (VAR)": t("nav_temporal", lang),
             "Robustness": t("nav_robustness", lang),
             "Comparison": t("nav_comparison", lang),
             "Simulation": t("nav_simulation", lang),
@@ -166,10 +167,10 @@ def main():
 
         # Combine all for selection map
         full_nav_map = {**nav_options_core, **nav_options_advanced}
-        
+
         # Display logic - we can stick to a single radio for simplicity or grouped
         # st.radio doesn't support groups nicely. Let's list them in order.
-        
+
         nav_order = [
             "Introduction",
             "Data & Schema",
@@ -177,27 +178,28 @@ def main():
             "Model Settings",
             "Run MGM",
             "Explore",
+            "Temporal Networks (VAR)",
             "Robustness",
             "Comparison",
             "Simulation",
             "Report & Export",
         ]
-        
+
         nav_labels = [full_nav_map[k] for k in nav_order]
-        
+
         # Default index
         curr_sel = st.session_state.get("nav_selection", "Introduction")
         if curr_sel not in nav_order:
             curr_sel = "Introduction"
-            
+
         nav_idx = nav_order.index(curr_sel)
-        
+
         sel_label = st.radio("Go to:", nav_labels, index=nav_idx)
-        
+
         # Reverse map label to key
         # Use simple zip lookup since labels might be localized and distinct
         sel_key = nav_order[nav_labels.index(sel_label)]
-        
+
         st.session_state["nav_selection"] = sel_key
         nav_selection = sel_key
 
@@ -290,7 +292,7 @@ def main():
                         st.success("Updated!")
                     else:
                         st.error("Failed to compute artifacts.")
-            
+
             if st.button("Clear derived cache"):
                 clear_analysis_cache(st.session_state, analysis_id or "unknown")
                 st.success("Cache cleared.")
@@ -299,7 +301,7 @@ def main():
     # ---------------------------------------------------------
     # MAIN AREA
     # ---------------------------------------------------------
-    
+
     # Validation flags
     valid_schema = st.session_state.schema_valid
     valid_spec = st.session_state.model_spec_valid
@@ -316,7 +318,7 @@ def main():
 
     elif nav_selection == "Data & Schema":
         render_data_schema_page(lang)
-        
+
     elif nav_selection == "Preprocessing":
         # Accessible if Schema is ready
         if not valid_schema:
@@ -348,7 +350,12 @@ def main():
     elif nav_selection == "Comparison":
         st.header(t("nav_comparison", lang))
         st.info("🚧 Module coming soon (Sprint B Agent M/K integration).")
-        
+
+    elif nav_selection == "Temporal Networks (VAR)":
+        # Accessible directly, logic inside handles data check
+        from hygeia_graph.ui_pages import render_temporal_page
+        render_temporal_page(lang)
+
     elif nav_selection == "Simulation":
         render_simulation_page(
             lang, st.session_state.get("analysis_id"), st.session_state.get("config_hash")
@@ -359,7 +366,7 @@ def main():
             render_report_page(lang, analysis_id or "unknown", config_hash_val)
         else:
             st.warning("No analyses to report yet.")
-    
+
     else:
         st.error(f"Unknown page: {nav_selection}")
 

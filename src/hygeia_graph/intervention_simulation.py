@@ -106,7 +106,6 @@ def simulate_intervention(
         A = normalize_adjacency(A)
 
     n = len(node_ids)
-    total_effect = np.zeros(n, dtype=float)
 
     # Propagation:
     # Effect at step k = delta * (damping^(k-1)) * (A^k)[target, :]
@@ -131,7 +130,8 @@ def simulate_intervention(
     # Step 1: Immediate neighbors
     # vec_1 = A @ vec_0
 
-    power_vec = current_vec.copy()  # Represents effect arriving at step 0 (intervention)
+    # Represents effect arriving at step 0 (intervention)
+    current_vec_copy = current_vec.copy()
     # Actually, the prompt formula is sum of (A^k)[i,:].
     # So we want row i of A^1, A^2...
 

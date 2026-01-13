@@ -3,7 +3,7 @@
 Provides consistent UX copy and workflow navigation for Hygeia-Graph.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 # ============================================================================
 # DATA FORMAT GUIDANCE

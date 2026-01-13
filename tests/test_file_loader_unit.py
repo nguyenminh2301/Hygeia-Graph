@@ -1,17 +1,17 @@
 """Unit tests for file loader module."""
 
 import io
-import pytest
+
 import pandas as pd
 
 from hygeia_graph.file_loader import (
+    SUPPORTED_EXTENSIONS,
+    FileLoadError,
+    convert_to_standard_format,
     detect_file_type,
     get_supported_extensions,
     load_csv,
     load_text,
-    convert_to_standard_format,
-    FileLoadError,
-    SUPPORTED_EXTENSIONS,
 )
 
 
@@ -64,7 +64,7 @@ class TestLoadCsv:
         csv_data = "a,b,c\n1,2,3\n4,5,6"
         file = io.BytesIO(csv_data.encode("utf-8"))
         df = load_csv(file)
-        
+
         assert len(df) == 2
         assert list(df.columns) == ["a", "b", "c"]
 
@@ -76,7 +76,7 @@ class TestLoadText:
         tsv_data = "a\tb\tc\n1\t2\t3"
         file = io.BytesIO(tsv_data.encode("utf-8"))
         df = load_text(file)
-        
+
         assert len(df) == 1
         assert list(df.columns) == ["a", "b", "c"]
 
@@ -87,13 +87,13 @@ class TestConvertToStandard:
     def test_clean_column_names(self):
         df = pd.DataFrame({" A ": [1], "B  ": [2], "  C": [3]})
         result = convert_to_standard_format(df)
-        
+
         assert list(result.columns) == ["A", "B", "C"]
 
     def test_object_to_string(self):
         df = pd.DataFrame({"a": ["x", "y"], "b": [1, 2]})
         result = convert_to_standard_format(df)
-        
+
         assert result["a"].dtype == "object"
 
 
@@ -102,6 +102,6 @@ class TestFileLoadError:
 
     def test_error_attributes(self):
         err = FileLoadError("Test error", details="More info")
-        
+
         assert err.message == "Test error"
         assert err.details == "More info"

@@ -1,13 +1,11 @@
 """Unit tests for UI flow helpers."""
 
-import pytest
 
 from hygeia_graph.ui_flow import (
-    get_next_page,
-    clear_all_state,
     build_zip_bytes,
+    clear_all_state,
+    get_next_page,
     get_schema_summary,
-    CLEARABLE_KEYS,
 )
 
 
@@ -129,8 +127,8 @@ class TestBuildZipBytes:
 
     def test_zip_contains_expected_files(self):
         """Test that ZIP contains expected files."""
-        import zipfile
         import io
+        import zipfile
 
         result = build_zip_bytes(
             artifacts={"schema": {"test": True}, "results": {"status": "success"}},

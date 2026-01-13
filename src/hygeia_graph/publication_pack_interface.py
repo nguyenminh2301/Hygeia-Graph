@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 from hygeia_graph.contracts import validate_results_json, validate_schema_json
+from hygeia_graph.diagnostics import get_rscript_path
 
 
 class PublicationPackError(Exception):
@@ -68,8 +69,12 @@ def run_publication_pack_subprocess(
     if not script_path.exists():
         raise RuntimeError(f"R script not found at {script_path}")
 
+    rscript_path = get_rscript_path()
+    if not rscript_path:
+        raise RuntimeError("Rscript not found. Please install R and ensure Rscript is on PATH.")
+    
     cmd = [
-        "Rscript",
+        rscript_path,
         str(script_path),
         "--results",
         str(results_path),

@@ -8,7 +8,6 @@ from typing import Any, BinaryIO, Dict, Optional, Tuple, Union
 
 import pandas as pd
 
-
 # Supported file extensions and their types
 SUPPORTED_EXTENSIONS = {
     ".csv": "csv",

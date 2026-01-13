@@ -6,7 +6,6 @@ for running Mixed Graphical Models with EBIC regularization.
 
 import hashlib
 import json
-import shutil
 import subprocess
 import tempfile
 import time
@@ -93,8 +92,11 @@ def locate_repo_root(start: Path | None = None) -> Path:
     )
 
 
+from hygeia_graph.diagnostics import get_rscript_path
+
+
 def ensure_rscript_available() -> str:
-    """Check that Rscript is available on PATH.
+    """Check that Rscript is available.
 
     Returns:
         Path to Rscript executable
@@ -102,10 +104,10 @@ def ensure_rscript_available() -> str:
     Raises:
         RuntimeError: If Rscript is not found
     """
-    rscript = shutil.which("Rscript")
+    rscript = get_rscript_path()
     if rscript is None:
         raise RuntimeError(
-            "Rscript not found. Please install R and ensure Rscript is on PATH. "
+            "Rscript not found. Please install R and ensure Rscript is on PATH or configure CUSTOM_R_PATHS. "
             "Download R from https://cran.r-project.org/"
         )
     return rscript
@@ -293,8 +295,8 @@ def run_mgm_subprocess(
             stderr = e.stderr or ""
             raise RBackendError(
                 f"R process timed out after {timeout_sec} seconds",
-                stdout=stdout,
-                stderr=stderr,
+                stdout=stdout.decode() if stdout else "",
+                stderr=stderr.decode() if stderr else "",
                 returncode=returncode,
                 workdir=workdir,
             ) from e

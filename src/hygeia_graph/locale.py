@@ -430,9 +430,54 @@ Kết quả nên được diễn giải bởi các nhà nghiên cứu có chuyê
         "en": "Use edge weights in centrality calculations (vs treating all edges as 1).",
         "vi": "Sử dụng trọng số cạnh trong tính toán trung tâm (so với coi tất cả cạnh là 1).",
     },
-    "help_centrality_abs": {
+    "help_centrality_absolute": {
         "en": "Use absolute values of edge weights for centrality (avoids cancellation of pos/neg effects).",
         "vi": "Sử dụng giá trị tuyệt đối của trọng số cạnh cho tính trung tâm (tránh triệt tiêu tác động ranh/âm).",
+    },
+    # Temporal Module
+    "nav_temporal": {
+        "en": "Temporal Networks (VAR)",
+        "vi": "Mạng lưới Thời gian (VAR)",
+    },
+    "temporal_intro": {
+        "en": "Estimate **Trend** (Lag-1) and **Contemporaneous** networks using Vector Autoregression (graphicalVAR).",
+        "vi": "Ước lượng mạng **Xu hướng** (Lag-1) và **Đồng thời** sử dụng Vector Autoregression (graphicalVAR).",
+    },
+    "temporal_disclaimer": {
+        "en": "⚠️ Note: Represents predictive associations (Granger causality), not necessarily true causality.",
+        "vi": "⚠️ Lưu ý: Đại diện cho các mối liên hệ dự đoán (quan hệ nhân quả Granger), không nhất thiết là nhân quả thực sự.",
+    },
+    "temporal_settings": {
+        "en": "VAR Settings",
+        "vi": "Cài đặt VAR",
+    },
+    "impute_label": {
+        "en": "Missing Data Imputation",
+        "vi": "Quy nạp dữ liệu thiếu",
+    },
+    "detrend_label": {
+        "en": "Detrend data (remove linear trend)",
+        "vi": "Loại bỏ xu hướng tuyến tính",
+    },
+    "unequal_ok_label": {
+        "en": "Proceed despite unequal time intervals (Advanced)",
+        "vi": "Tiếp tục dù khoảng thời gian không đều (Nâng cao)",
+    },
+    "run_temporal_btn": {
+        "en": "🚀 Run Temporal Analysis",
+        "vi": "🚀 Chạy Phân tích Thời gian",
+    },
+    "tab_temporal": {
+        "en": "Temporal (Directed)",
+        "vi": "Thời gian (Có hướng)",
+    },
+    "tab_contemporaneous": {
+        "en": "Contemporaneous (Undirected)",
+        "vi": "Đồng thời (Vô hướng)",
+    },
+    "download_temporal_zip": {
+        "en": "📥 Download Temporal Analysis ZIP",
+        "vi": "📥 Tải ZIP Phân tích Thời gian",
     },
     # Introduction Page
     "intro_title": {

@@ -79,3 +79,12 @@ data/*.sav
 
 # Artifacts directory (local only)
 .artifacts/
+
+# Generated Reports & Exports
+temporal_analysis.zip
+diagnostics.json
+*.zip
+
+# Temporary scripts
+test_*.py
+!tests/test_*.py

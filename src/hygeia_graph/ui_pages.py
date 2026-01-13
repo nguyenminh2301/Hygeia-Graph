@@ -9,7 +9,7 @@ from hygeia_graph.contracts import (
     validate_model_spec_json,
     validate_schema_json,
 )
-from hygeia_graph.data_processor import build_schema_json, infer_variables, load_csv, profile_df
+from hygeia_graph.data_processor import build_schema_json, infer_variables, profile_df
 from hygeia_graph.locale import t
 from hygeia_graph.model_spec import build_model_spec, default_model_settings, sanitize_settings
 from hygeia_graph.network_metrics import (
@@ -35,6 +35,7 @@ from hygeia_graph.visualizer import (
     network_to_html,
     prepare_legend_html,
 )
+from hygeia_graph.temporal_interface import run_temporal_var_subprocess
 
 
 def init_session_state():
@@ -51,6 +52,8 @@ def init_session_state():
         "r_process_info": None,
         "missing_rate": 0.0,
         "lang": "en",
+        "analysis_id": None,
+        "config_hash": None,
     }
     for key, val in defaults.items():
         if key not in st.session_state:
@@ -91,19 +94,19 @@ def render_data_schema_page(lang: str):
     st.header(t("nav_data_upload", lang))
 
     # Data format guidance
-    from hygeia_graph.ui_guidance import DATA_FORMAT_SHORT, DATA_FORMAT_DETAILS
-    from hygeia_graph.file_loader import (
-        load_file,
-        convert_to_standard_format,
-        get_supported_extensions,
-        SUPPORTED_FORMATS_DISPLAY,
-        FileLoadError,
-    )
     from hygeia_graph.example_datasets import (
         EXAMPLES,
-        load_example_df,
         get_example_meta,
+        load_example_df,
     )
+    from hygeia_graph.file_loader import (
+        SUPPORTED_FORMATS_DISPLAY,
+        FileLoadError,
+        convert_to_standard_format,
+        get_supported_extensions,
+        load_file,
+    )
+    from hygeia_graph.ui_guidance import DATA_FORMAT_DETAILS, DATA_FORMAT_SHORT
 
     st.markdown(DATA_FORMAT_SHORT)
     st.markdown(SUPPORTED_FORMATS_DISPLAY)
@@ -297,8 +300,8 @@ def render_data_schema_page(lang: str):
 
     # Schema status (no JSON preview)
     if st.session_state.schema_valid and st.session_state.schema_obj:
+        from hygeia_graph.ui_copy import STATUS_SCHEMA_READY
         from hygeia_graph.ui_flow import get_schema_summary
-        from hygeia_graph.ui_copy import STATUS_SCHEMA_READY, NEXT_LABELS
 
         summary = get_schema_summary(st.session_state.schema_obj)
         st.success(f"{STATUS_SCHEMA_READY} ({summary})")
@@ -552,6 +555,15 @@ def render_run_mgm_page(lang: str):
                     st.info("💡 Analysis complete! Go to the 'Explore' page to visualize results.")
                 else:
                     status.update(label="⚠️ MGM Failed", state="error")
+                    st.error("MGM Analysis reported failure.")
+                    # Show messages
+                    for msg in res["results"].get("messages", []):
+                        if msg["level"] == "error":
+                            st.error(f"[{msg['code']}] {msg['message']}")
+                        elif msg["level"] == "warning":
+                            st.warning(f"[{msg['code']}] {msg['message']}")
+                        else:
+                            st.info(f"[{msg['code']}] {msg['message']}")
             except RBackendError as e:
                 status.update(label="❌ R Backend Error", state="error")
                 st.error(e.message)
@@ -856,9 +868,8 @@ def render_publication_pack_section(lang: str, analysis_id: str, config: dict):
                 import tempfile
                 from pathlib import Path
 
-                tmp_zip = tempfile.NamedTemporaryFile(delete=False, suffix=".zip")
-                tmp_zip.close()
-                zip_path = Path(tmp_zip.name)
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".zip") as tmp_zip:
+                    zip_path = Path(tmp_zip.name)
 
                 build_publication_zip(
                     zip_path=zip_path,
@@ -970,6 +981,10 @@ def render_simulation_page(lang: str, analysis_id: str, config_hash: str):
         def fmt_node(nid):
             return f"{node_map[nid].get('label', nid)} ({nid})"
 
+        if not node_ids:
+            st.warning("No nodes available for simulation. Please run MGM analysis first.")
+            return
+            
         target_node = c1.selectbox("Intervention Node", node_ids, format_func=fmt_node)
 
         # Delta
@@ -1129,15 +1144,15 @@ def render_preprocessing_page(lang: str):
         return
 
     # Imports locally to avoid top-level cost if unused
-    from hygeia_graph.preprocess_interface import PreprocessError, run_lasso_select_subprocess
-    from hygeia_graph.preprocess_utils import compute_dataset_hash, lasso_settings_hash
     from hygeia_graph.heavy_guardrails import (
-        normalize_lasso_settings,
-        render_messages_to_markdown,
-        LASSO_SAFE_MAX_FEATURES,
         LASSO_HARD_MAX_FEATURES,
         LASSO_HARD_MAX_NFOLDS,
+        LASSO_SAFE_MAX_FEATURES,
+        normalize_lasso_settings,
+        render_messages_to_markdown,
     )
+    from hygeia_graph.preprocess_interface import PreprocessError, run_lasso_select_subprocess
+    from hygeia_graph.preprocess_utils import compute_dataset_hash, lasso_settings_hash
 
     # 1. Settings
     df = st.session_state.df
@@ -1516,21 +1531,29 @@ def render_report_page(lang: str, analysis_id: str, config_hash: str):
 
     if st.button("Generate Insights Report", type="primary"):
         derived = st.session_state.get("derived_metrics_json")
-        r_posthoc = st.session_state.get("r_posthoc_json")
         bootnet = st.session_state.get("bootnet_cache", {}).get(analysis_id)
 
         payload = build_report_payload(
-            analysis_id=analysis_id,
-            schema_json=st.session_state.schema_obj,
-            model_spec_json=st.session_state.model_spec_obj,
             results_json=st.session_state.results_json,
-            derived_metrics=derived,
-            r_posthoc=r_posthoc,
-            bootnet_result=bootnet,
+            derived_metrics_json=derived,
+            explore_cfg=st.session_state.get("explore_config"),
+            bootnet_meta=bootnet.get("meta") if bootnet else None,
+            bootnet_tables=bootnet.get("tables") if bootnet else None,
+            nct_meta=None,
+            nct_summary=None,
+            nct_edge_table=None,
+            settings={"top_n": 10, "style": "paper"},
         )
 
-        report = generate_insights_report(payload)
-        st.session_state["insights_report"] = report
+        report = generate_insights_report(
+            results_json=st.session_state.results_json,
+            derived_metrics_json=derived,
+            explore_cfg=st.session_state.get("explore_config"),
+            bootnet_meta=bootnet.get("meta") if bootnet else None,
+            bootnet_tables=bootnet.get("tables") if bootnet else None,
+            settings={"top_n": 10, "style": "paper"},
+        )
+        st.session_state["insights_report"] = report["markdown"]
 
     if "insights_report" in st.session_state:
         st.markdown(st.session_state["insights_report"])
@@ -1546,17 +1569,11 @@ def render_report_page(lang: str, analysis_id: str, config_hash: str):
     st.subheader("📈 Dataset Descriptive Statistics")
 
     from hygeia_graph.descriptives import (
-        classify_variables,
-        compute_missing_summary,
-        build_variable_summary_table,
         build_categorical_levels_table,
         build_descriptives_payload,
-    )
-    from hygeia_graph.descriptives_cache import (
-        compute_dataset_hash,
-        descriptives_settings_hash,
-        get_cached_descriptives,
-        set_cached_descriptives,
+        build_variable_summary_table,
+        classify_variables,
+        compute_missing_summary,
     )
 
     df = st.session_state.get("df")
@@ -1680,10 +1697,10 @@ def render_robustness_page(lang: str, analysis_id: str, config_hash: str):
     )
 
     from hygeia_graph.heavy_guardrails import (
+        BOOTNET_HARD_MAX_BOOTS,
+        BOOTNET_SAFE_MAX_BOOTS,
         normalize_bootnet_settings,
         render_messages_to_markdown,
-        BOOTNET_SAFE_MAX_BOOTS,
-        BOOTNET_HARD_MAX_BOOTS,
     )
 
     with st.expander("⚙️ Bootnet Settings", expanded=True):
@@ -1747,6 +1764,228 @@ def render_robustness_page(lang: str, analysis_id: str, config_hash: str):
 
     # Store effective settings
     st.session_state["bootnet_settings_effective"] = norm
+
+
+def render_temporal_page(lang: str):
+    """Render Temporal Networks (VAR) analysis page."""
+    st.header("🔬 Temporal Networks (VAR)")
+    
+    # Data validation
+    if st.session_state.df is None:
+        st.warning("Please upload data first.")
+        return
+    
+    # Check required packages
+    from hygeia_graph.diagnostics import check_r_packages
+    r_packages = check_r_packages(["graphicalVAR"])
+    if not r_packages["ok"]:
+        st.error(f"Missing required packages: {r_packages['missing']}")
+        st.info("Install with: install.packages('graphicalVAR')")
+        return
+    
+    # Temporal data validation
+    from hygeia_graph.temporal_validation import validate_temporal_inputs
+    df = st.session_state.df
+    
+    # Settings
+    with st.expander("⚙️ Temporal Analysis Settings", expanded=True):
+        # Time column selection
+        time_col = st.selectbox(
+            "Time Column",
+            options=df.columns.tolist(),
+            index=0 if not hasattr(st.session_state, 'temporal_time_col') else st.session_state.get('temporal_time_col', 0)
+        )
+        
+        # Group/ID column selection
+        group_cols = st.multiselect(
+            "Group/ID Columns (Optional)",
+            options=df.columns.tolist(),
+            default=getattr(st.session_state, 'temporal_group_cols', [])
+        )
+        
+        # Advanced settings
+        st.subheader("Advanced Settings")
+        allow_unequal = st.checkbox(
+            "Allow Unequal Time Intervals",
+            value=getattr(st.session_state, 'temporal_unequal_intervals', False)
+        )
+        
+        advanced_unlock = st.checkbox(
+            "Advanced Mode (Bypass Validations)",
+            value=getattr(st.session_state, 'temporal_advanced', False)
+        )
+    
+    # Validate inputs
+    if 'temporal_time_col' not in st.session_state or st.session_state.get('temporal_time_col') != time_col:
+        st.session_state.temporal_time_col = time_col
+        st.session_state.temporal_group_cols = group_cols
+        st.session_state.temporal_unequal_intervals = allow_unequal
+        st.session_state.temporal_advanced = advanced_unlock
+        
+        # Run validation
+        ok, messages, temporal_info = validate_temporal_inputs(
+            df=df,
+            time_col=time_col,
+            id_col=group_cols[0] if group_cols else None,
+            vars=df.columns.tolist(),
+            unequal_ok=allow_unequal,
+            advanced_unlock=advanced_unlock
+        )
+        
+        if not ok:
+            for msg in messages:
+                st.error(f"❌ {msg}")
+            st.info("💡 Consider adjusting settings or using Advanced Mode to bypass validations.")
+    
+    # Run analysis button
+    st.divider()
+    col1, col2 = st.columns([1, 1])
+    
+    with col1:
+        if st.button("🔬 Run Temporal VAR Analysis", type="primary"):
+            with st.spinner("Running temporal VAR analysis... This may take several minutes..."):
+                try:
+                    result = run_temporal_var_subprocess(
+                        df=df,
+                        time_col=time_col,
+                        id_col=group_cols[0] if group_cols else None,
+                        vars=df.columns.tolist(),
+                        timeout_sec=600
+                    )
+                    
+                    if result["results"]["status"] == "success":
+                        st.session_state.temporal_results = result["results"]
+                        st.session_state.temporal_tables = result["tables"]
+                        st.success("✅ Temporal VAR analysis completed successfully!")
+                        st.rerun()
+                    else:
+                        st.error("❌ Temporal VAR analysis failed")
+                        for msg in result["results"].get("messages", []):
+                            st.error(f"• {msg}")
+                except Exception as e:
+                    st.error(f"❌ Error running temporal analysis: {e}")
+    
+    with col2:
+        if st.button("🗑️ Clear Results"):
+            if "temporal_results" in st.session_state:
+                del st.session_state.temporal_results
+            if "temporal_tables" in st.session_state:
+                del st.session_state.temporal_tables
+            st.success("✅ Results cleared")
+            st.rerun()
+    
+    # Results display
+    if "temporal_results" in st.session_state and st.session_state.temporal_results["status"] == "success":
+        st.divider()
+        st.subheader("📊 Temporal VAR Analysis Results")
+        
+        results = st.session_state.temporal_results
+        tables = st.session_state.get("temporal_tables", {})
+        
+        # Results summary
+        meta = results.get("meta", {})
+        if meta:
+            st.info(f"📈 Analysis completed with {meta.get('n_subjects', 'unknown')} subjects "
+                    f"and {meta.get('n_timepoints', 'unknown')} time points")
+        
+        # Display results in tabs
+        tab1, tab2, tab3, tab4 = st.tabs([
+            "🔗 Temporal Edges", 
+            "⚡ Contemporaneous Edges", 
+            "📈 PDC/PCC Matrices",
+            "📥 Export Results"
+        ])
+        
+        with tab1:
+            st.markdown("### 🔗 Temporal (Lag) Edges")
+            if "temporal_edges" in tables and tables["temporal_edges"] is not None:
+                temporal_edges = tables["temporal_edges"]
+                st.dataframe(temporal_edges, use_container_width=True)
+                st.info("These represent cross-lagged effects from time t to t+1")
+            else:
+                st.info("No temporal edges found")
+        
+        with tab2:
+            st.markdown("### ⚡ Contemporaneous Edges")
+            if "contemporaneous_edges" in tables and tables["contemporaneous_edges"] is not None:
+                cont_edges = tables["contemporaneous_edges"]
+                st.dataframe(cont_edges, use_container_width=True)
+                st.info("These represent within-time-point associations")
+            else:
+                st.info("No contemporaneous edges found")
+        
+        with tab3:
+            st.markdown("### 📈 Predictive Causality Measures")
+            
+            subtab1, subtab2 = st.tabs(["PDC Matrix", "PCC Matrix"])
+            
+            with subtab1:
+                if "PDC" in tables and tables["PDC"] is not None:
+                    st.dataframe(tables["PDC"], use_container_width=True)
+                    st.caption("Partial Directed Coherence - frequency-domain causality")
+                else:
+                    st.info("PDC matrix not available")
+            
+            with subtab2:
+                if "PCC" in tables and tables["PCC"] is not None:
+                    st.dataframe(tables["PCC"], use_container_width=True)
+                    st.caption("Partial Correlation Coefficients")
+                else:
+                    st.info("PCC matrix not available")
+        
+        with tab4:
+            st.markdown("### 📥 Export Temporal Results")
+            st.info("Export temporal analysis results for further analysis")
+            
+            # Create download buttons for each result
+            export_col1, export_col2 = st.columns(2)
+            
+            with export_col1:
+                if "temporal_edges" in tables and tables["temporal_edges"] is not None:
+                    st.download_button(
+                        "📥 Download Temporal Edges",
+                        data=tables["temporal_edges"].to_csv(index=False),
+                        file_name="temporal_edges.csv",
+                        mime="text/csv"
+                    )
+                
+                if "contemporaneous_edges" in tables and tables["contemporaneous_edges"] is not None:
+                    st.download_button(
+                        "📥 Download Contemporaneous Edges",
+                        data=tables["contemporaneous_edges"].to_csv(index=False),
+                        file_name="contemporaneous_edges.csv",
+                        mime="text/csv"
+                    )
+            
+            with export_col2:
+                if "PDC" in tables and tables["PDC"] is not None:
+                    st.download_button(
+                        "📥 Download PDC Matrix",
+                        data=tables["PDC"].to_csv(index=False),
+                        file_name="pdc_matrix.csv",
+                        mime="text/csv"
+                    )
+                
+                if "PCC" in tables and tables["PCC"] is not None:
+                    st.download_button(
+                        "📥 Download PCC Matrix",
+                        data=tables["PCC"].to_csv(index=False),
+                        file_name="pcc_matrix.csv",
+                        mime="text/csv"
+                    )
+            
+            # Export all results as ZIP
+            if st.button("📦 Export All Results as ZIP"):
+                with st.spinner("Creating ZIP file..."):
+                    from hygeia_graph.temporal_exports import build_temporal_zip
+                    zip_bytes = build_temporal_zip(results, tables)
+                    
+                    st.download_button(
+                        "📥 Download Complete ZIP",
+                        data=zip_bytes,
+                        file_name="temporal_var_results.zip",
+                        mime="application/zip"
+                    )
 
     if st.button("Run Bootnet Analysis", type="primary"):
         st.warning("Bootnet integration requires R environment. Please ensure R is installed.")
