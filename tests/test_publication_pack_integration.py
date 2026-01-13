@@ -15,7 +15,8 @@ def has_r_qgraph():
     cmd = [
         "Rscript",
         "-e",
-        "if(!all(c('qgraph','svglite','jsonlite') %in% installed.packages()[,'Package'])) quit(status=1)",
+        "if(!all(c('qgraph','svglite','jsonlite') %in% installed.packages()[,'Package'])) "
+        "quit(status=1)",
     ]
     ret = subprocess.call(cmd)
     return ret == 0

@@ -6,7 +6,6 @@ import zipfile
 from datetime import datetime, timezone
 from typing import Any, Dict, List, MutableMapping, Optional
 
-
 # Page order and navigation
 PAGES = [
     "Data & Schema",

@@ -1,15 +1,12 @@
 """Unit tests for example datasets module."""
 
-from pathlib import Path
-import pytest
 
 from hygeia_graph.example_datasets import (
     EXAMPLES,
     get_example_keys,
     get_example_meta,
-    load_example_df,
     get_example_path,
-    ASSETS_DIR,
+    load_example_df,
 )
 
 

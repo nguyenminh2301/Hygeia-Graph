@@ -1,15 +1,14 @@
 """Unit tests for longitudinal flow module."""
 
 import pandas as pd
-import pytest
 
 from hygeia_graph.longitudinal_flow import (
-    detect_longitudinal_pairs,
-    validate_pair_data,
-    build_transition_table,
     build_sankey_nodes_links,
-    make_sankey_figure,
+    build_transition_table,
+    detect_longitudinal_pairs,
     figure_to_html,
+    make_sankey_figure,
+    validate_pair_data,
 )
 
 

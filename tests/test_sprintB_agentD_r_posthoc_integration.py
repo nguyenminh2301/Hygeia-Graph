@@ -23,7 +23,8 @@ def check_r_packages():
     cmd = [
         "Rscript",
         "-e",
-        "if(!all(c('mgm','jsonlite','digest','igraph') %in% installed.packages()[,'Package'])) quit(status=1)",
+        "if(!all(c('mgm','jsonlite','digest','igraph') %in% installed.packages()[,'Package'])) "
+        "quit(status=1)",
     ]
     try:
         subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)

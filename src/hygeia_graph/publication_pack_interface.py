@@ -169,8 +169,8 @@ def run_publication_pack_subprocess(
 
     # NOTE: We keep workdir alive if caller wants to read files?
     # Actually, we should allow caller to handle cleanup or return object.
-    # But usually we return paths to temp files, so we MUST NOT cleanup immediately if we return paths.
-    # Wait, Reference: other interfaces (bootnet/lasso) read DF then cleanup.
+    # But usually we return paths to temp files, so we MUST NOT cleanup immediately if we return
+    # paths.
     # Here we have binary files (SVG/PDF). Reading them all into memory is bad?
     # No, SVG/PDFs are small. But ZIP building needs them.
     # Strategy: ZIP builder should run while temp dir exists.

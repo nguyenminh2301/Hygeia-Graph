@@ -83,7 +83,7 @@ def enforce_explore_config(
     messages = []
 
     # Get recommendations
-    rec = recommend_defaults(n_nodes, n_edges)
+    recommend_defaults(n_nodes, n_edges)
 
     # Enforce top_edges limit for very large networks
     if n_nodes > NODES_DISABLE_PYVIS:
