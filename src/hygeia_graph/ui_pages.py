@@ -88,6 +88,13 @@ def render_introduction_page(lang: str):
     st.markdown(f"**{t('step_3_title', lang)}**: {t('step_3_desc', lang)}")
     st.markdown(f"**{t('step_4_title', lang)}**: {t('step_4_desc', lang)}")
 
+    st.divider()
+    col1, col2 = st.columns([1, 1])
+    with col1:
+        if st.button("➡️ Start: Data & Schema", type="primary", use_container_width=True):
+            st.session_state["nav_selection"] = "Data & Schema"
+            st.rerun()
+
 
 def render_data_schema_page(lang: str):
     """Render Data & Schema page (Steps 1-4)."""
@@ -460,6 +467,16 @@ def render_model_settings_page(lang: str):
         with st.expander("📄 Model Spec Preview"):
             st.json(st.session_state.model_spec_obj)
 
+    if st.session_state.model_spec_valid:
+        st.divider()
+        col1, col2 = st.columns([3, 1])
+        with col1:
+            st.success("✅ Model specification ready! You can now run MGM analysis.")
+        with col2:
+            if st.button("➡️ Go to Run MGM", type="primary", use_container_width=True):
+                st.session_state["nav_selection"] = "Run MGM"
+                st.rerun()
+
 
 def render_run_mgm_page(lang: str):
     """Render Run MGM page."""
@@ -553,6 +570,17 @@ def render_run_mgm_page(lang: str):
 
                     # Suggest Explore
                     st.info("💡 Analysis complete! Go to the 'Explore' page to visualize results.")
+                    
+                    st.divider()
+                    col1, col2 = st.columns([1, 1])
+                    with col1:
+                        if st.button("➡️ Go to Explore", type="primary", use_container_width=True):
+                            st.session_state["nav_selection"] = "Explore"
+                            st.rerun()
+                    with col2:
+                        if st.button("📊 Temporal Networks (VAR)", use_container_width=True):
+                            st.session_state["nav_selection"] = "Temporal Networks (VAR)"
+                            st.rerun()
                 else:
                     status.update(label="⚠️ MGM Failed", state="error")
                     st.error("MGM Analysis reported failure.")
@@ -764,6 +792,18 @@ def render_explore_page(lang: str, analysis_id: str, config_hash: str):
                 "text/csv",
             )
         st.download_button("Download network.html", pyvis_html, "network.html", "text/html")
+
+        st.divider()
+        st.write("### Continue Analysis")
+        col1, col2 = st.columns([1, 1])
+        with col1:
+            if st.button("➡️ Next: Report & Export", use_container_width=True):
+                st.session_state["nav_selection"] = "Report & Export"
+                st.rerun()
+        with col2:
+            if st.button("📊 Temporal Networks (VAR)", use_container_width=True):
+                st.session_state["nav_selection"] = "Temporal Networks (VAR)"
+                st.rerun()
 
         st.divider()
         render_publication_pack_section(
@@ -1134,6 +1174,18 @@ def render_simulation_page(lang: str, analysis_id: str, config_hash: str):
                 "text/csv",
             )
 
+        st.divider()
+        st.write("### Continue Analysis")
+        col1, col2 = st.columns([1, 1])
+        with col1:
+            if st.button("➡️ Next: Report & Export", type="primary", use_container_width=True):
+                st.session_state["nav_selection"] = "Report & Export"
+                st.rerun()
+        with col2:
+            if st.button("🔗 Go to Explore", use_container_width=True):
+                st.session_state["nav_selection"] = "Explore"
+                st.rerun()
+
 
 def render_preprocessing_page(lang: str):
     """Render Preprocessing (Feature Selection) page."""
@@ -1358,6 +1410,18 @@ def render_preprocessing_page(lang: str):
                 "filtered_data.csv",
                 "text/csv",
             )
+
+        st.divider()
+        st.write("### Continue Analysis")
+        col1, col2 = st.columns([1, 1])
+        with col1:
+            if st.button("➡️ Next: Model Settings", type="primary", use_container_width=True):
+                st.session_state["nav_selection"] = "Model Settings"
+                st.rerun()
+        with col2:
+            if st.button("📊 Go to Report & Export", use_container_width=True):
+                st.session_state["nav_selection"] = "Report & Export"
+                st.rerun()
 
     """Render Report & Export page."""
     st.header("Report & Export")
@@ -1765,6 +1829,18 @@ def render_robustness_page(lang: str, analysis_id: str, config_hash: str):
     # Store effective settings
     st.session_state["bootnet_settings_effective"] = norm
 
+    st.divider()
+    st.write("### Continue Analysis")
+    col1, col2 = st.columns([1, 1])
+    with col1:
+        if st.button("➡️ Next: Report & Export", type="primary", use_container_width=True):
+            st.session_state["nav_selection"] = "Report & Export"
+            st.rerun()
+    with col2:
+        if st.button("🔗 Go to Explore", use_container_width=True):
+            st.session_state["nav_selection"] = "Explore"
+            st.rerun()
+
 
 def render_temporal_page(lang: str):
     """Render Temporal Networks (VAR) analysis page."""
@@ -1986,6 +2062,18 @@ def render_temporal_page(lang: str):
                         file_name="temporal_var_results.zip",
                         mime="application/zip"
                     )
+
+        st.divider()
+        st.write("### Continue Analysis")
+        col1, col2 = st.columns([1, 1])
+        with col1:
+            if st.button("➡️ Go to Report & Export", type="primary", use_container_width=True):
+                st.session_state["nav_selection"] = "Report & Export"
+                st.rerun()
+        with col2:
+            if st.button("🔗 Go to Explore", use_container_width=True):
+                st.session_state["nav_selection"] = "Explore"
+                st.rerun()
 
     if st.button("Run Bootnet Analysis", type="primary"):
         st.warning("Bootnet integration requires R environment. Please ensure R is installed.")

@@ -111,7 +111,16 @@ def load_example_df(key: str) -> pd.DataFrame:
     return pd.read_csv(path)
 
 
-def generate_easy_dataset(seed: int = 42) -> pd.DataFrame:
+def validate_generated_data(df: pd.DataFrame, min_categories: int = 2) -> bool:
+    """Validate generated data has minimum variation."""
+    for col in df.columns:
+        unique_count = df[col].nunique()
+        if unique_count < min_categories:
+            raise ValueError(f"Column '{col}' has only {unique_count} unique value(s). Minimum required: {min_categories}")
+    return True
+
+
+def generate_easy_dataset(seed: int = 2024) -> pd.DataFrame:
     """Generate the Easy example dataset."""
     np.random.seed(seed)
     n = 140
@@ -133,7 +142,7 @@ def generate_easy_dataset(seed: int = 42) -> pd.DataFrame:
     sleep_raw = 5 - pain * 0.3 + np.random.normal(0, 0.8, n)
     sleep_quality = sleep_raw.clip(1, 5).round().astype(int)
 
-    return pd.DataFrame({
+    df = pd.DataFrame({
         "Age": age,
         "Gender": gender,
         "CRP": crp,
@@ -142,8 +151,11 @@ def generate_easy_dataset(seed: int = 42) -> pd.DataFrame:
         "SleepQuality": sleep_quality,
     })
 
+    validate_generated_data(df)
+    return df
 
-def generate_medium_dataset(seed: int = 42) -> pd.DataFrame:
+
+def generate_medium_dataset(seed: int = 2025) -> pd.DataFrame:
     """Generate the Medium example dataset."""
     np.random.seed(seed)
     n = 280
@@ -173,7 +185,7 @@ def generate_medium_dataset(seed: int = 42) -> pd.DataFrame:
     # Diagnosis stage
     diagnosis_stage = np.random.choice([1, 2, 3, 4], n, p=[0.3, 0.35, 0.25, 0.1])
 
-    return pd.DataFrame({
+    df = pd.DataFrame({
         "Age": age,
         "Gender": gender,
         "BMI": bmi,
@@ -188,8 +200,11 @@ def generate_medium_dataset(seed: int = 42) -> pd.DataFrame:
         "DiagnosisStage": diagnosis_stage,
     })
 
+    validate_generated_data(df)
+    return df
 
-def generate_hard_dataset(seed: int = 42) -> pd.DataFrame:
+
+def generate_hard_dataset(seed: int = 2028) -> pd.DataFrame:
     """Generate the Hard example dataset."""
     np.random.seed(seed)
     n = 600
@@ -199,7 +214,7 @@ def generate_hard_dataset(seed: int = 42) -> pd.DataFrame:
     # Demographics (3)
     data["Age"] = np.random.normal(55, 12, n).clip(25, 80).round(1)
     data["Gender"] = np.random.choice(["Male", "Female"], n, p=[0.48, 0.52])
-    data["Ethnicity"] = np.random.choice(["White", "Black", "Asian", "Hispanic", "Other"], n, p=[0.6, 0.15, 0.1, 0.1, 0.05])
+    data["Ethnicity"] = np.random.choice(["White", "Black", "Asian", "Hispanic", "Other"], n, p=[0.4, 0.2, 0.15, 0.15, 0.1])
 
     # Biomarkers (10)
     data["BMI"] = np.random.normal(28, 6, n).clip(17, 50).round(1)
@@ -229,13 +244,15 @@ def generate_hard_dataset(seed: int = 42) -> pd.DataFrame:
 
     # Lifestyle (4)
     data["SmokingStatus"] = np.random.choice(["Never", "Former", "Current"], n, p=[0.45, 0.35, 0.2])
-    data["AlcoholUse"] = np.random.choice(["None", "Light", "Moderate", "Heavy"], n, p=[0.25, 0.4, 0.25, 0.1])
+    data["AlcoholUse"] = np.random.choice(["Non-drinker", "Light", "Moderate", "Heavy"], n, p=[0.25, 0.4, 0.25, 0.1])
     data["ExerciseLevel"] = np.random.choice([1, 2, 3, 4], n, p=[0.25, 0.35, 0.25, 0.15])
     data["DietQuality"] = np.random.choice([1, 2, 3, 4, 5], n, p=[0.1, 0.2, 0.35, 0.25, 0.1])
 
     # Utilisation (3)
     data["HospitalDays"] = (data["PainScore"] * 0.3 + np.random.poisson(2, n)).clip(0, 30).astype(int)
     data["ERVisits"] = np.random.poisson(1, n).clip(0, 10).astype(int)
-    data["MedicationCount"] = (data["Age"] * 0.05 + np.random.poisson(2, n)).clip(0, 15).astype(int)
+    data["MedicationCount"] = (data["Age"] * 0.05 + np.random.poisson(2, n)).clip(0, 8).astype(int)
 
-    return pd.DataFrame(data)
+    df = pd.DataFrame(data)
+    validate_generated_data(df)
+    return df

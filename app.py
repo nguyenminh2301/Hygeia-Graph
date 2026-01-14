@@ -158,47 +158,43 @@ def main():
         }
 
         nav_options_advanced = {
-            "Preprocessing": t("nav_preprocess", lang),
-            "Temporal Networks (VAR)": t("nav_temporal", lang),
-            "Robustness": t("nav_robustness", lang),
-            "Comparison": t("nav_comparison", lang),
-            "Simulation": t("nav_simulation", lang),
+            "Preprocessing": {"label": t("nav_preprocess", lang), "hidden": True},
+            "Temporal Networks (VAR)": {"label": t("nav_temporal", lang), "hidden": False},
+            "Robustness": {"label": t("nav_robustness", lang), "hidden": True},
+            "Comparison": {"label": t("nav_comparison", lang), "hidden": False},
+            "Simulation": {"label": t("nav_simulation", lang), "hidden": True},
         }
 
-        # Combine all for selection map
-        full_nav_map = {**nav_options_core, **nav_options_advanced}
-
-        # Display logic - we can stick to a single radio for simplicity or grouped
-        # st.radio doesn't support groups nicely. Let's list them in order.
+        def get_nav_label(key):
+            if key in nav_options_core:
+                return nav_options_core[key]
+            elif key in nav_options_advanced:
+                opt = nav_options_advanced[key]
+                return opt["label"] if isinstance(opt, dict) else opt
+            return key
 
         nav_order = [
             "Introduction",
             "Data & Schema",
-            "Preprocessing",  # Moved here as requested (Branch point)
             "Model Settings",
             "Run MGM",
             "Explore",
             "Temporal Networks (VAR)",
-            "Robustness",
-            "Comparison",
-            "Simulation",
             "Report & Export",
         ]
 
-        nav_labels = [full_nav_map[k] for k in nav_order]
+        visible_nav_order = [k for k in nav_order if not nav_options_advanced.get(k, {}).get("hidden", False)]
+        nav_labels = [get_nav_label(k) for k in visible_nav_order]
 
-        # Default index
         curr_sel = st.session_state.get("nav_selection", "Introduction")
         if curr_sel not in nav_order:
             curr_sel = "Introduction"
 
-        nav_idx = nav_order.index(curr_sel)
+        nav_idx = visible_nav_order.index(curr_sel) if curr_sel in visible_nav_order else 0
 
         sel_label = st.radio("Go to:", nav_labels, index=nav_idx)
 
-        # Reverse map label to key
-        # Use simple zip lookup since labels might be localized and distinct
-        sel_key = nav_order[nav_labels.index(sel_label)]
+        sel_key = visible_nav_order[nav_labels.index(sel_label)]
 
         st.session_state["nav_selection"] = sel_key
         nav_selection = sel_key
@@ -313,17 +309,14 @@ def main():
     LOCKED_MSG = "🔒 This page is locked. Please complete prior steps in order."
 
     # Router
+    # Note: Hidden pages (Preprocessing, Robustness, Simulation) are kept in code
+    # but not shown in sidebar. They can be re-enabled by changing hidden=False in nav_options_advanced.
+
     if nav_selection == "Introduction":
         render_introduction_page(lang)
 
     elif nav_selection == "Data & Schema":
         render_data_schema_page(lang)
-
-    elif nav_selection == "Preprocessing":
-        # Accessible if Schema is ready
-        if not valid_schema:
-             st.info("💡 Please upload data and generate schema first.")
-        render_preprocessing_page(lang)
 
     elif nav_selection == "Model Settings":
         if not valid_schema:
@@ -344,28 +337,33 @@ def main():
         else:
             render_explore_page(lang, analysis_id or "unknown", config_hash_val)
 
-    elif nav_selection == "Robustness":
-        render_robustness_page(lang, analysis_id or "unknown", config_hash_val)
-
-    elif nav_selection == "Comparison":
-        st.header(t("nav_comparison", lang))
-        st.info("🚧 Module coming soon (Sprint B Agent M/K integration).")
-
     elif nav_selection == "Temporal Networks (VAR)":
-        # Accessible directly, logic inside handles data check
         from hygeia_graph.ui_pages import render_temporal_page
         render_temporal_page(lang)
-
-    elif nav_selection == "Simulation":
-        render_simulation_page(
-            lang, st.session_state.get("analysis_id"), st.session_state.get("config_hash")
-        )
 
     elif nav_selection == "Report & Export":
         if st.session_state.schema_obj or st.session_state.results_json:
             render_report_page(lang, analysis_id or "unknown", config_hash_val)
         else:
             st.warning("No analyses to report yet.")
+
+    # Hidden pages (accessible via direct navigation only)
+    elif nav_selection == "Preprocessing":
+        if not valid_schema:
+            st.info("💡 Please upload data and generate schema first.")
+        render_preprocessing_page(lang)
+
+    elif nav_selection == "Robustness":
+        render_robustness_page(lang, analysis_id or "unknown", config_hash_val)
+
+    elif nav_selection == "Simulation":
+        render_simulation_page(
+            lang, st.session_state.get("analysis_id"), st.session_state.get("config_hash")
+        )
+
+    elif nav_selection == "Comparison":
+        st.header(t("nav_comparison", lang))
+        st.info("🚧 Module coming soon (Sprint B Agent M/K integration).")
 
     else:
         st.error(f"Unknown page: {nav_selection}")

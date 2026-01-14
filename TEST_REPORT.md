@@ -1,6 +1,6 @@
 # Hygeia-Graph Test Report
 
-**Date:** 2026-01-14 00:38:26
+**Date:** 2026-01-14 00:41:14
 
 **Python:** 3.13.6
 **R:** 4.3.3
@@ -65,13 +65,13 @@
 | Test | Status | Duration | Details |
 |------|--------|----------|---------|
 | Default settings (easy) | ✅ PASSED | 0.00s | EBIC gamma=0.5 |
-| Build model spec (easy) | ✅ PASSED | 0.00s | Analysis ID: 1b72dd22... |
+| Build model spec (easy) | ✅ PASSED | 0.00s | Analysis ID: fc20b4b9... |
 | Model spec validation (easy) | ✅ PASSED | 0.00s | Valid JSON Schema |
 | Default settings (medium) | ✅ PASSED | 0.00s | EBIC gamma=0.5 |
-| Build model spec (medium) | ✅ PASSED | 0.00s | Analysis ID: 4b44c74a... |
+| Build model spec (medium) | ✅ PASSED | 0.00s | Analysis ID: 09043dcc... |
 | Model spec validation (medium) | ✅ PASSED | 0.00s | Valid JSON Schema |
 | Default settings (hard) | ✅ PASSED | 0.00s | EBIC gamma=0.5 |
-| Build model spec (hard) | ✅ PASSED | 0.00s | Analysis ID: 3a6dd087... |
+| Build model spec (hard) | ✅ PASSED | 0.00s | Analysis ID: f485eb25... |
 | Model spec validation (hard) | ✅ PASSED | 0.00s | Valid JSON Schema |
 
 
@@ -80,21 +80,9 @@
 
 | Test | Status | Duration | Details |
 |------|--------|----------|---------|
-| MGM execution (easy) | ⏭️ SKIPPED | 0.00s | Validation failed for schema:
-  /: Additional properties are not allowed ('centrality', 'edge_mapping', 'engine', 'input', 'mgm', 'missing_policy', 'random_seed', 'spec_version', 'visualization' were unexpected)
-  /: 'schema_version' is a required property
-  /: 'dataset' is a required property
-  /: 'variables' is a required property |
-| MGM execution (medium) | ⏭️ SKIPPED | 0.00s | Validation failed for schema:
-  /: Additional properties are not allowed ('centrality', 'edge_mapping', 'engine', 'input', 'mgm', 'missing_policy', 'random_seed', 'spec_version', 'visualization' were unexpected)
-  /: 'schema_version' is a required property
-  /: 'dataset' is a required property
-  /: 'variables' is a required property |
-| MGM execution (hard) | ⏭️ SKIPPED | 0.00s | Validation failed for schema:
-  /: Additional properties are not allowed ('centrality', 'edge_mapping', 'engine', 'input', 'mgm', 'missing_policy', 'random_seed', 'spec_version', 'visualization' were unexpected)
-  /: 'schema_version' is a required property
-  /: 'dataset' is a required property
-  /: 'variables' is a required property |
+| MGM execution (easy) | ⏭️ SKIPPED | 0.00s | too many values to unpack (expected 2) |
+| MGM execution (medium) | ⏭️ SKIPPED | 0.00s | too many values to unpack (expected 2) |
+| MGM execution (hard) | ⏭️ SKIPPED | 0.00s | too many values to unpack (expected 2) |
 
 
 ### Descriptives
@@ -102,9 +90,9 @@
 
 | Test | Status | Duration | Details |
 |------|--------|----------|---------|
-| Descriptive stats (easy) | ❌ FAILED | 0.00s | 'measurement_level' |
-| Descriptive stats (medium) | ❌ FAILED | 0.00s | 'measurement_level' |
-| Descriptive stats (hard) | ❌ FAILED | 0.00s | 'measurement_level' |
+| Descriptive stats (easy) | ❌ FAILED | 0.00s | 'var_id' |
+| Descriptive stats (medium) | ❌ FAILED | 0.00s | 'var_id' |
+| Descriptive stats (hard) | ❌ FAILED | 0.00s | 'var_id' |
 
 
 ### Localization
