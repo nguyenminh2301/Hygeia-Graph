@@ -1866,10 +1866,19 @@ def render_temporal_page(lang: str):
     # Settings
     with st.expander("⚙️ Temporal Analysis Settings", expanded=True):
         # Time column selection
+        # Handle both string (column name) and integer (index) for backwards compatibility
+        time_col_idx = st.session_state.get('temporal_time_col', 0)
+        if isinstance(time_col_idx, str):
+            # Convert column name to index
+            try:
+                time_col_idx = df.columns.tolist().index(time_col_idx)
+            except (ValueError, AttributeError):
+                time_col_idx = 0
+        
         time_col = st.selectbox(
             "Time Column",
             options=df.columns.tolist(),
-            index=0 if not hasattr(st.session_state, 'temporal_time_col') else st.session_state.get('temporal_time_col', 0)
+            index=time_col_idx
         )
         
         # Group/ID column selection

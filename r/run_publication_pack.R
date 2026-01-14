@@ -434,18 +434,6 @@ tryCatch({
     strength_vec <- NULL
     inf_vec <- NULL
     
-    if (!is.null(derived_json) && !is.null(derived_json$node_metrics)) {
-        s_map <- derived_json$node_metrics$strength
-        # match to node_ids
-        # strength might be signed in raw derived? usually strength is abs sum.
-        # Actually in posthoc_metrics.py we usually store 'strength' (abs sum).
-        # Let's rely on calculation from W to be perfectly synced with the Figure.
-        # This is safer than mixing derived metrics (which might use different threshold?)
-        # Wait, usually centrality is on the FULL network or Filtered?
-        # User exp: Centrality of the SHOWN network.
-        pass
-    }
-    
     # Compute from W (The matrix actually plotted)
     # This ensures consistency: "What you see is what you measure" for the specific figure.
     strength_vec <- colSums(abs(W))
